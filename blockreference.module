@@ -194,7 +194,7 @@ function theme_blockreference_formatter_plain($element) {
   $output = '';
   if (isset($element['#item']['bid'])) {
     $args[] = $element['#item']['bid'];
-    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%s'", 'blocks', 'bid'), $args);
+    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%s'", 'blocks', 'bid', $args), $args);
     $block = db_fetch_object($result);
     $info = module_invoke($block->module, 'block', 'list');
     $output = $info[$block->delta]['info'];
@@ -325,7 +325,7 @@ function blockreference_autocomplete_value($element, $edit = FALSE) {
   $field_key  = $element['#columns'][0];
   if (!empty($element['#default_value'][$field_key])) {
     $bid = $element['#default_value'][$field_key];
-    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%d'", 'blocks', 'bid'), $bid);
+    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%d'", 'blocks', 'bid', $bid), $bid);
     $block = db_fetch_object($result);
     $info = module_invoke($block->module, 'block', 'list');
     $value = $info[$block->delta]['info'];
@@ -438,7 +438,7 @@ function blockreference_autocomplete_validate($element, &$form_state) {
       list(, $info, $bid) = $matches;
 
       $args[] = $bid;
-      $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%s'", 'blocks', 'bid'), $args);
+      $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%s'", 'blocks', 'bid', $args), $args);
       $block = db_fetch_object($result);
       $info = module_invoke($block->module, 'block', 'list');
       $block->info = $info[$block->delta]['info'];
@@ -508,7 +508,7 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
     //$args[] = $string;
   }
 
-  $result = db_query(db_rewrite_sql("SELECT b.bid, b.module, b.delta, b.title, b.region FROM {blocks} b WHERE b.theme = '". variable_get('theme_default', 'garland') ."' AND ". $related_clause ." ORDER BY b.region, b.weight", 'blocks', 'bid'), $args);
+  $result = db_query(db_rewrite_sql("SELECT b.bid, b.module, b.delta, b.title, b.region FROM {blocks} b WHERE b.theme = '". variable_get('theme_default', 'garland') ."' AND ". $related_clause ." ORDER BY b.region, b.weight", 'blocks', 'bid', $args), $args);
 
   $rows = array();
 
