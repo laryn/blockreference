@@ -325,7 +325,8 @@ function blockreference_autocomplete_value($element, $edit = FALSE) {
   $field_key  = $element['#columns'][0];
   if (!empty($element['#default_value'][$field_key])) {
     $bid = $element['#default_value'][$field_key];
-    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%d'", 'blocks', 'bid', $bid), $bid);
+    $args[] = $bid;
+    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%d'", 'blocks', 'bid', $args), $args);
     $block = db_fetch_object($result);
     $info = module_invoke($block->module, 'block', 'list');
     $value = $info[$block->delta]['info'];
