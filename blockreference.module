@@ -163,26 +163,19 @@ function blockreference_field_formatter_info() {
 
 /**
  * Theme function for 'default' blockreference field formatter.
- *
- * to do: this is horrible, use an sql query to get the correct block object instead.
  */
 function theme_blockreference_formatter_default($element) {
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
   $output = '';
   if (!empty($element['#item']['bid']) && is_numeric($element['#item']['bid'])) {
-    if (is_array($field['referenceable_regions'])) {
-      foreach ($field['referenceable_regions'] as $related_region) {
-        if ($list = block_list($related_region)) {
-          foreach ($list as $key => $block) {
-            if ($block->bid == $element['#item']['bid']) {
-              $output = theme('block', $block);
-              break;
-            }
-          }
-        }
-      }
-    }
+    $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ".$element['#item']['bid'], 'blocks', 'bid')));
+    $block->enabled = TRUE;
+    $block->status = TRUE;
+    $block->page_match = TRUE;
+    $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
+    $block->content = $block_view['content'];
+    $output = theme('block', $block);
   }
   return $output;
 }
