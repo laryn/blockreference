@@ -174,7 +174,8 @@ function theme_blockreference_formatter_default($element) {
     $block->status = TRUE;
     $block->page_match = TRUE;
     $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
-    $block->content = $block_view['content'];
+    $block->content =  $block_view['content'];
+    $block->subject = $block_view['subject'];
     $output = theme('block', $block);
   }
   return $output;
