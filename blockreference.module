@@ -316,7 +316,7 @@ function blockreference_widget(&$form, &$form_state, $field, $items, $delta = 0)
  * Substitute in the block title for the block bid.
  */
 function blockreference_autocomplete_value($element, $edit = FALSE) {
-  $field_key  = $element['#columns'][0];
+  $field_key = $element['#columns'][0];
   if (!empty($element['#default_value'][$field_key])) {
     $bid = $element['#default_value'][$field_key];
     $args[] = $bid;
@@ -518,16 +518,16 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
       }  
     }
     else if (!empty($string)) {
-      if (!empty($block->info) && strpos($block->info, $string) != FALSE) {
+      if (!empty($block->info) && stripos($block->info, $string) !== FALSE) {
         $allowed = TRUE;
       }
-      else if (!empty($block->title) && strpos($block->title, $string) != FALSE) {
+      else if (!empty($block->title) && stripos($block->title, $string) !== FALSE) {
         $allowed = TRUE;
       }
-      else if (!empty($block->module) && strpos($block->module ." ". $block->delta, $string) != FALSE) {
+      else if (!empty($block->module) && stripos($block->module ." ". $block->delta, $string) !== FALSE) {
         $allowed = TRUE;
       }
-      else if (!empty($block->bid) && strpos($block->bid, $string) != FALSE) {
+      else if (!empty($block->bid) && stripos($block->bid, $string) !== FALSE) {
         $allowed = TRUE;
       }
     }
