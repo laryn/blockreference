@@ -176,7 +176,9 @@ function theme_blockreference_formatter_default($element) {
     $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
     $block->content =  $block_view['content'];
     $block->subject = $block_view['subject'];
-    $output = theme('block', $block);
+    if ($block->content) {
+      $output = theme('block', $block);
+    }
   }
   return $output;
 }
