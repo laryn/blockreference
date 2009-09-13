@@ -43,6 +43,9 @@ function blockreference_theme() {
     'blockreference_formatter_plain' => array(
       'arguments' => array('element'),
     ),
+    'blockreference_formatter_title' => array(
+      'arguments' => array('element'),
+    ),
   );
 }
 
@@ -158,6 +161,17 @@ function blockreference_field_formatter_info() {
       'field types' => array('blockreference'),
       'multiple values' => CONTENT_HANDLE_CORE,
     ),
+    'plain' => array(
+      'label' => t('Plain (info)'),
+      'field types' => array('blockreference'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+    'title' => array(
+      'label' => t('Title only'),
+      'field types' => array('blockreference'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+
   );
 }
 
@@ -169,7 +183,7 @@ function theme_blockreference_formatter_default($element) {
   $field = content_fields($field_name);
   $output = '';
   if (!empty($element['#item']['bid']) && is_numeric($element['#item']['bid'])) {
-    $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ".$element['#item']['bid'], 'blocks', 'bid')));
+    $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ". $element['#item']['bid'], 'blocks', 'bid')));
     $block->enabled = TRUE;
     $block->status = TRUE;
     $block->page_match = TRUE;
@@ -194,6 +208,27 @@ function theme_blockreference_formatter_plain($element) {
     $block = db_fetch_object($result);
     $info = module_invoke($block->module, 'block', 'list');
     $output = $info[$block->delta]['info'];
+  }
+  return $output;
+}
+
+/**
+ * Theme function for 'title' blockreference field formatter.
+ */
+function theme_blockreference_formatter_title($element) {
+  $field_name = $element['#field_name'];
+  $field = content_fields($field_name);
+  $output = '';
+  if (!empty($element['#item']['bid']) && is_numeric($element['#item']['bid'])) {
+    $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ". $element['#item']['bid'], 'blocks', 'bid')));
+    $block->enabled = TRUE;
+    $block->status = TRUE;
+    $block->page_match = TRUE;
+    $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
+    $subject = $block->title ? $block->title : $block_view['subject'];
+    if ($block_view['content']) {
+      $output = check_plain($subject);
+    }
   }
   return $output;
 }
