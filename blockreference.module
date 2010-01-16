@@ -257,6 +257,14 @@ function blockreference_widget_info() {
         'default value' => CONTENT_CALLBACK_DEFAULT,
       ),
     ),
+    'blockreference_select_sort' => array(
+      'label' => t('Select list (with drag-and-drop sort)'),
+      'field types' => array('blockreference'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+      'callbacks' => array(
+        'default value' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
     'blockreference_autocomplete' => array(
       'label' => t('Autocomplete text field'),
       'field types' => array('blockreference'),
@@ -286,6 +294,11 @@ function blockreference_elements() {
       '#input' => TRUE,
       '#columns' => array('uid'), '#delta' => 0,
       '#process' => array('blockreference_select_process'),
+      ),
+    'blockreference_select_sort' => array(
+      '#input' => TRUE,
+      '#columns' => array('uid'), '#delta' => 0,
+      '#process' => array('blockreference_select_sort_process'),
       ),
     'blockreference_autocomplete' => array(
       '#input' => TRUE,
@@ -383,7 +396,6 @@ function blockreference_select_process($element, $edit, $form_state, $form) {
   $element[$field_key] = array(
     '#type' => 'optionwidgets_select',
     '#default_value' => isset($element['#value']) ? $element['#value'] : '',
-    '#element_validate' => array('optionwidgets_validate', 'blockreference_select_validate'),
 
     // The following values were set by the content module and need
     // to be passed down to the nested element.
@@ -394,6 +406,40 @@ function blockreference_select_process($element, $edit, $form_state, $form) {
     '#required' => $element['#required'],
     '#description' => $element['#description'],
   );
+  if (empty($element[$field_key]['#element_validate'])) {
+    $element[$field_key]['#element_validate'] = array();
+  }
+  array_unshift($element[$field_key]['#element_validate'], 'optionwidgets_validate', 'blockreference_select_validate');
+
+  return $element;
+}
+
+/**
+ * Process an individual element.
+ *
+ * Build the form element. When creating a form using FAPI #process,
+ * note that $element['#value'] is already set.
+ *
+ * The $fields array is in $form['#field_info'][$element['#field_name']].
+ */
+function blockreference_select_sort_process($element, $edit, $form_state, $form) {
+  $field_key  = $element['#columns'][0];
+  $element[$field_key] = array(
+    '#type' => 'select',
+    '#options' => blockreference_allowed_values($field),
+    '#multiple' => 0,
+    '#default_value' => isset($element['#value'][$element['#parents'][1]]) ? $element['#value'][$element['#parents'][1]] : '',
+
+    // The following values were set by the content module and need
+    // to be passed down to the nested element.
+    '#field_name' => $element['#field_name'],
+    '#delta' => $element['#delta'],
+    '#columns' => $element['#columns'],
+    '#title' => $element['#title'],
+    '#required' => $element['#required'],
+    '#description' => $element['#description'],
+  );
+
   return $element;
 }
 
@@ -415,7 +461,6 @@ function blockreference_autocomplete_process($element, $edit, $form_state, $form
     '#type' => 'text_textfield',
     '#default_value' => isset($element['#value']) ? $element['#value'] : '',
     '#autocomplete_path' => 'blockreference/autocomplete/'. $element['#field_name'],
-    '#element_validate' => array('blockreference_autocomplete_validate'),
 
     // The following values were set by the content module and need
     // to be passed down to the nested element.
@@ -426,6 +471,11 @@ function blockreference_autocomplete_process($element, $edit, $form_state, $form
     '#required' => $element['#required'],
     '#description' => $element['#description'],
   );
+  if (empty($element[$field_key]['#element_validate'])) {
+    $element[$field_key]['#element_validate'] = array();
+  }
+  array_unshift($element[$field_key]['#element_validate'], 'blockreference_autocomplete_validate');
+
   return $element;
 }
 
