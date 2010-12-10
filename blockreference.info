@@ -1,5 +1,5 @@
 ; $Id$
-name = Block Reference
+name = Block reference
 description = Defines a field type for referencing a block from a node.
 dependencies[] = content
 dependencies[] = text

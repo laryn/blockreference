@@ -43,6 +43,9 @@ function blockreference_theme() {
     'blockreference_formatter_default' => array(
       'arguments' => array('element'),
     ),
+    'blockreference_formatter_without_title' => array(
+      'arguments' => array('element'),
+    ),
     'blockreference_formatter_plain' => array(
       'arguments' => array('element'),
     ),
@@ -164,6 +167,11 @@ function blockreference_field_formatter_info() {
       'field types' => array('blockreference'),
       'multiple values' => CONTENT_HANDLE_CORE,
     ),
+    'without_title' => array(
+      'label' => t('Normal, without title'),
+      'field types' => array('blockreference'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
     'plain' => array(
       'label' => t('Plain (info)'),
       'field types' => array('blockreference'),
@@ -179,12 +187,9 @@ function blockreference_field_formatter_info() {
 }
 
 /**
- * Theme function for 'default' blockreference field formatter.
+ * Helper function for theming normal block views, returns appropriate block.
  */
-function theme_blockreference_formatter_default($element) {
-  $field_name = $element['#field_name'];
-  $field = content_fields($field_name);
-  $output = '';
+function _theme_blockreference_formatter_get_block($element) {
   if (!empty($element['#item']['bid']) && is_numeric($element['#item']['bid'])) {
     $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ". $element['#item']['bid'], 'blocks', 'bid')));
     $block->enabled = TRUE;
@@ -193,9 +198,32 @@ function theme_blockreference_formatter_default($element) {
     $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
     $block->content = $block_view['content'];
     $block->subject = $block->title ? $block->title : $block_view['subject'];
-    if ($block->content) {
-      $output = theme('block', $block);
-    }
+  }
+  
+  return $block;
+}
+
+/**
+ * Theme function for 'default' blockreference field formatter.
+ */
+function theme_blockreference_formatter_default($element) {
+  $block = _theme_blockreference_formatter_get_block($element);
+  $output = '';
+  if ($block->content) {
+    $output = theme('block', $block);
+  }
+  return $output;
+}
+
+/**
+ * Theme function for 'without_title' blockreference field formatter.
+ */
+function theme_blockreference_formatter_without_title($element) {
+  $block = _theme_blockreference_formatter_get_block($element);
+  $block->subject = ''; // Without title
+  $output = '';
+  if ($block->content) {
+    $output = theme('block', $block);
   }
   return $output;
 }
