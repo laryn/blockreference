@@ -7,376 +7,273 @@
  */
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function blockreference_menu() {
   $items = array();
-  $items['blockreference/autocomplete'] = array(
-    'title' => 'Blockreference autocomplete',
+  $items['blockreference/autocomplete/%/%'] = array(
+    'title' => 'blockreference autocomplete',
     'page callback' => 'blockreference_autocomplete',
-    'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK
+    'page arguments' => array(2, 3),
+    'access callback' => 'blockreference_autocomplete_access',
+    'access arguments' => array(2, 3),
+    'type' => MENU_CALLBACK,
   );
   return $items;
 }
 
 /**
- * Implementation of hook_theme().
+ * Implements hook_theme().
  */
 function blockreference_theme() {
   return array(
     'blockreference_item_simple' => array(
-      'arguments' => array('item' => NULL),
-    ),
-    'blockreference_item_advanced' => array(
-      'arguments' => array('item' => NULL, 'view' => NULL),
-    ),
-    'blockreference_select' => array(
-      'arguments' => array('element' => NULL),
-    ),
-    'blockreference_select_sort' => array(
-      'arguments' => array('element' => NULL),
-    ),
-    'blockreference_autocomplete' => array(
-      'arguments' => array('element' => NULL),
+      'variables' => array('item' => NULL),
     ),
     'blockreference_formatter_default' => array(
-      'arguments' => array('element'),
+      'variables' => array('element' => NULL),
     ),
     'blockreference_formatter_without_title' => array(
-      'arguments' => array('element'),
-    ),
-    'blockreference_formatter_plain' => array(
-      'arguments' => array('element'),
+      'variables' => array('element' => NULL),
     ),
     'blockreference_formatter_title' => array(
-      'arguments' => array('element'),
+      'variables' => array('element' => NULL),
+    ),
+    'blockreference_formatter_plain' => array(
+      'variables' => array('element' => NULL),
     ),
   );
 }
 
 /**
- * Implementation of hook_field_info().
- *
- * Here we indicate that the content module will use its default
- * handling for the view of this field.
- *
- * Callbacks can be omitted if default handing is used.
- * They're included here just so this module can be used
- * as an example for custom modules that might do things
- * differently.
+ * Implements hook_field_info().
  */
 function blockreference_field_info() {
   return array(
     'blockreference' => array(
-      'label' => t('Block reference'),
-      'description' => t('Store the ID of a related block as an integer value.'),
-      'callbacks' => array(
-        'tables' => CONTENT_CALLBACK_DEFAULT,
-        'arguments' => CONTENT_CALLBACK_DEFAULT,
-        ),
-      ),
+      'label'             => t('Block reference'),
+      'description'       => t('This field stores the ID of a related block as an integer value.'),
+      'settings'          => array('referenceable_regions' => array()),
+      'default_widget'    => 'options_select',
+      'default_formatter' => 'blockreference_default',
+    ),
   );
 }
 
 /**
- * Implementation of hook_field_settings().
+ * Implements hook_field_schema().
  */
-function blockreference_field_settings($op, $field) {
-
-  switch ($op) {
-
-    case 'form':
-      $form = array();
-      $form['referenceable_regions'] = array(
-        '#type' => 'checkboxes',
-        '#title' => t('Regions containing blocks that can be referenced'),
-        '#multiple' => TRUE,
-        '#default_value' => is_array($field['referenceable_regions']) ? $field['referenceable_regions'] : array(),
-        '#options' => array('' => '(Disabled)') + system_region_list(variable_get('theme_default', 'garland')),
-      );
-      return $form;
-
-    case 'save':
-      $settings = array('referenceable_regions');
-      return $settings;
-
-    case 'database columns':
-      $columns = array(
-        'bid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
-      );
-      return $columns;
-
-    case 'views data':
-      $data = content_views_field_views_data($field);
-      $db_info = content_database_info($field);
-      $table_alias = content_views_tablename($field);
-
-      // Swap the filter handler to the 'in' operator.
-      $data[$table_alias][$field['field_name'] .'_bid']['filter']['handler'] = 'views_handler_filter_many_to_one_content';
-
-      // Add a relationship for related block.
-      $data[$table_alias][$field['field_name'] .'_bid']['relationship'] = array(
-        'base' => 'blocks',
-        'field' => $db_info['columns']['bid']['column'],
-        'handler' => 'views_handler_relationship',
-      );
-      return $data;
-  }
-}
-
-/**
- * Implementation of hook_field().
- */
-function blockreference_field($op, &$node, $field, &$items, $teaser, $page) {
-  switch ($op) {
-    case 'validate':
-      $refs = _blockreference_potential_references($field, TRUE);
-      foreach ($items as $delta => $item) {
-        if (is_array($item) && !empty($item['error_field'])) {
-          $error_field = $item['error_field'];
-          unset($item['error_field']);
-          if (!empty($item['bid'])) {
-            if (!in_array($item['bid'], array_keys($refs))) {
-              form_set_error($error_field, t("%name : This block can't be referenced.", array('%name' => t($field['widget']['label']))));
-            }
-          }
-        }
-      }
-      return $items;
-  }
-}
-
-/**
- * Implementation of hook_content_is_empty().
- */
-function blockreference_content_is_empty($item, $field) {
-  if (empty($item['bid'])) {
-    return TRUE;
-  }
-  return FALSE;
-}
-
-/**
- * Implementation of hook_field_formatter_info().
- */
-function blockreference_field_formatter_info() {
+function blockreference_field_schema($field) {
+  $columns = array(
+    'bid' => array(
+      'type'     => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+    ),
+  );
   return array(
-    'default' => array(
-      'label' => t('Default'),
-      'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_CORE,
+    'columns' => $columns,
+    'indexes' => array('bid' => array('bid')),
+    'foreign keys' => array(
+      'bid' => array(
+        'table' => 'block',
+        'columns' => array('bid' => 'bid'),
+      ),
     ),
-    'without_title' => array(
-      'label' => t('Normal, without title'),
-      'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_CORE,
-    ),
-    'plain' => array(
-      'label' => t('Plain (info)'),
-      'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_CORE,
-    ),
-    'title' => array(
-      'label' => t('Title only'),
-      'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_CORE,
-    ),
-
   );
 }
 
 /**
- * Helper function for theming normal block views, returns appropriate block.
+ * Implements hook_field_settings_form().
  */
-function _theme_blockreference_formatter_get_block($element) {
-  if (!empty($element['#item']['bid']) && is_numeric($element['#item']['bid'])) {
-    $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ". $element['#item']['bid'], 'blocks', 'bid')));
-    $block->enabled = TRUE;
-    $block->status = TRUE;
-    $block->page_match = TRUE;
-    $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
-    $block->content = $block_view['content'];
-    $block->subject = $block->title ? $block->title : $block_view['subject'];
-  }
-  
-  return $block;
+function blockreference_field_settings_form($field, $instance, $has_data) {
+  $settings = $field['settings'];
+
+  $form = array();
+  $form['referenceable_regions'] = array(
+    '#type'          => 'checkboxes',
+    '#title'         => t('Regions containing blocks that can be referenced'),
+    '#multiple'      => TRUE,
+    '#default_value' => is_array($settings['referenceable_regions'])
+      ? $settings['referenceable_regions']
+      : array(),
+    '#options'       => system_region_list(variable_get('theme_default', 'bartik')) + array('' => t('Disabled')),
+    '#disabled'      => $has_data,
+  );
+  return $form;
 }
 
 /**
- * Theme function for 'default' blockreference field formatter.
+ * Implements hook_field_validate().
+ *
+ * Possible error codes:
+ * - 'invalid_bid': bid is not valid for the field (not a valid block id, or the block is not referenceable).
  */
-function theme_blockreference_formatter_default($element) {
-  $block = _theme_blockreference_formatter_get_block($element);
-  $output = '';
-  if ($block->content) {
-    $output = theme('block', $block);
-  }
-  return $output;
-}
+function blockreference_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+  // Extract bids to check.
+  $ids = array();
 
-/**
- * Theme function for 'without_title' blockreference field formatter.
- */
-function theme_blockreference_formatter_without_title($element) {
-  $block = _theme_blockreference_formatter_get_block($element);
-  $block->subject = ''; // Without title
-  $output = '';
-  if ($block->content) {
-    $output = theme('block', $block);
-  }
-  return $output;
-}
-
-/**
- * Theme function for 'plain' blockreference field formatter.
- */
-function theme_blockreference_formatter_plain($element) {
-  $output = '';
-  if (isset($element['#item']['bid'])) {
-    $args[] = $element['#item']['bid'];
-    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%s'", 'blocks', 'bid', $args), $args);
-    $block = db_fetch_object($result);
-    $info = module_invoke($block->module, 'block', 'list');
-    $output = $info[$block->delta]['info'];
-  }
-  return $output;
-}
-
-/**
- * Theme function for 'title' blockreference field formatter.
- */
-function theme_blockreference_formatter_title($element) {
-  $field_name = $element['#field_name'];
-  $field = content_fields($field_name);
-  $output = '';
-  if (!empty($element['#item']['bid']) && is_numeric($element['#item']['bid'])) {
-    $block = db_fetch_object(db_query(db_rewrite_sql("SELECT * FROM {blocks} WHERE bid = ". $element['#item']['bid'], 'blocks', 'bid')));
-    $block->enabled = TRUE;
-    $block->status = TRUE;
-    $block->page_match = TRUE;
-    $block_view = module_invoke($block->module, 'block', 'view', $block->delta);
-    $subject = $block->title ? $block->title : $block_view['subject'];
-    if ($block_view['content']) {
-      $output = check_plain($subject);
+  // First check non-numeric bid's to avoid losing time with them.
+  foreach ($items as $delta => $item) {
+    if (is_array($item) && !empty($item['bid'])) {
+      if (is_numeric($item['bid'])) {
+        $ids[] = $item['bid'];
+      }
+      else {
+        $errors[$field['field_name']][$langcode][$delta][] = array(
+          'error' => 'invalid_bid',
+          'message' => t("%name: invalid input.",
+            array('%name' => $instance['label'])),
+        );
+      }
     }
   }
-  return $output;
+  // Prevent performance hog if there are no ids to check.
+  if ($ids) {
+    $refs = _blockreference_potential_references($field, TRUE);
+    foreach ($items as $delta => $item) {
+      if (is_array($item)) {
+        if (!empty($item['bid']) && !isset($refs[$item['bid']])) {
+          $errors[$field['field_name']][$langcode][$delta][] = array(
+            'error' => 'invalid_bid',
+            'message' => t("%name: This block can't be referenced.",
+              array('%name' => $instance['label'])),
+          );
+        }
+      }
+    }
+  }
+}
+
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function blockreference_field_is_empty($item, $field) {
+  // bid = 0 is empty too, which is exactly what we want.
+  return empty($item['bid']);
 }
 
 /**
- * Implementation of hook_widget_info().
- *
- * We need custom handling of multiple values for the blockreference_select
- * widget because we need to combine them into a options list rather
- * than display multiple elements.
- *
- * We will use the content module's default handling for default value.
- *
- * Callbacks can be omitted if default handing is used.
- * They're included here just so this module can be used
- * as an example for custom modules that might do things
- * differently.
+ * Implements hook_field_formatter_info().
  */
-function blockreference_widget_info() {
-  return array(
-    'blockreference_select' => array(
-      'label' => t('Select list'),
+function blockreference_field_formatter_info() {
+  $ret = array(
+    'blockreference_default' => array(
+      'label'       => t('Default (title and content)'),
+      'description' => t('Display the title and content of a block.'),
       'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_MODULE,
-      'callbacks' => array(
-        'default value' => CONTENT_CALLBACK_DEFAULT,
+    ),
+    'blockreference_without_title' => array(
+      'label'       => t('Content only'),
+      'description' => t('Display the content of a block.  Do not display the title.'),
+      'field types' => array('blockreference'),
+    ),
+    'blockreference_title' => array(
+      'label'       => t('Title only'),
+      'description' => t('Display the title of a block.  Do not display the content.'),
+      'field types' => array('blockreference'),
+    ),
+    'blockreference_plain' => array(
+      'label'       => t('Info'),
+      'description' => t('Display the info text of a block.'),
+      'field types' => array('blockreference'),
+    ),
+  );
+  return $ret;
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function blockreference_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $formatter = str_replace('blockreference_', '', $display['type']);
+  foreach ($items as $delta => $item) {
+    $element[$delta] = array(
+      '#theme' => 'blockreference_formatter_' . $formatter,
+      '#element' => array(
+        'entity_type' => &$entity_type,
+        'entity' => &$entity,
+        'field' => &$field,
+        'instance' => &$instance,
+        'langcode' => &$langcode,
+        'item' => $item,
+        'display' => &$display,
+      ),
+    );
+  }
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function blockreference_field_widget_info() {
+  return array(
+    'blockreference_autocomplete' => array(
+      'label'       => t('Autocomplete text field'),
+      'description' => t('Display the list of referenceable blocks as a textfield with autocomplete behaviour.'),
+      'field types' => array('blockreference'),
+      'settings'    => array(
+        'size' => 60,
+        'autocomplete_path' => 'blockreference/autocomplete',
       ),
     ),
     'blockreference_select_sort' => array(
       'label' => t('Select list (with drag-and-drop sort)'),
+      'description' => t('Display the lists of referenceable blocks as a series of single select lists with drag-and-drop behaviour.'),
       'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_CORE,
-      'callbacks' => array(
-        'default value' => CONTENT_CALLBACK_DEFAULT,
-      ),
-    ),
-    'blockreference_autocomplete' => array(
-      'label' => t('Autocomplete text field'),
-      'field types' => array('blockreference'),
-      'multiple values' => CONTENT_HANDLE_CORE,
-      'callbacks' => array(
-        'default value' => CONTENT_CALLBACK_DEFAULT,
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
     ),
   );
 }
 
 /**
- * Implementation of FAPI hook_elements().
- *
- * Any FAPI callbacks needed for individual widgets can be declared here,
- * and the element will be passed to those callbacks for processing.
- *
- * Drupal will automatically theme the element using a theme with
- * the same name as the hook_elements key.
- *
- * Autocomplete_path is not used by text_widget but other widgets can use it
- * (see blockreference and userreference).
+ * Implements hook_field_widget_info_alter().
  */
-function blockreference_elements() {
-  return array(
-    'blockreference_select' => array(
-      '#input' => TRUE,
-      '#columns' => array('uid'), '#delta' => 0,
-      '#process' => array('blockreference_select_process'),
-      ),
-    'blockreference_select_sort' => array(
-      '#input' => TRUE,
-      '#columns' => array('uid'), '#delta' => 0,
-      '#process' => array('blockreference_select_sort_process'),
-      ),
-    'blockreference_autocomplete' => array(
-      '#input' => TRUE,
-      '#columns' => array('name'), '#delta' => 0,
-      '#process' => array('blockreference_autocomplete_process'),
-      '#autocomplete_path' => FALSE,
-      ),
-    );
+function blockreference_field_widget_info_alter(&$info) {
+  $info['options_select']['field types'][] = 'blockreference';
+  $info['options_buttons']['field types'][] = 'blockreference';
 }
 
 /**
- * Implementation of hook_widget().
- *
- * Attach a single form element to the form. It will be built out and
- * validated in the callback(s) listed in hook_elements. We build it
- * out in the callbacks rather than here in hook_widget so it can be
- * plugged into any module that can provide it with valid
- * $field information.
- *
- * Content module will set the weight, field name and delta values
- * for each form element. This is a change from earlier CCK versions
- * where the widget managed its own multiple values.
- *
- * If there are multiple values for this field, the content module will
- * call this function as many times as needed.
- *
- * @param $form
- *   the entire form array, $form['#node'] holds node information
- * @param $form_state
- *   the form_state, $form_state['values'][$field['field_name']]
- *   holds the field's form values.
- * @param $field
- *   the field array
- * @param $items
- *   array of default values for this field
- * @param $delta
- *   the order of this item in the array of subelements (0, 1, 2, etc)
- *
- * @return
- *   the form item for a single element for this field
+ * Implements hook_field_widget_settings_form().
  */
-function blockreference_widget(&$form, &$form_state, $field, $items, $delta = 0) {
-  switch ($field['widget']['type']) {
-    case 'blockreference_select':
-      $element = array(
-        '#type' => 'blockreference_select',
-        '#default_value' => $items,
+function blockreference_field_widget_settings_form($field, $instance) {
+  $widget   = $instance['widget'];
+  $defaults = field_info_widget_settings($widget['type']);
+  $settings = array_merge($defaults, $widget['settings']);
+
+  $form = array();
+  if ($widget['type'] == 'blockreference_autocomplete') {
+    $form['size'] = array(
+      '#type'             => 'textfield',
+      '#title'            => t('Size of textfield'),
+      '#default_value'    => $settings['size'],
+      '#element_validate' => array('_element_validate_integer_positive'),
+      '#required'         => TRUE,
+    );
+  }
+  return $form;
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function blockreference_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  switch ($instance['widget']['type']) {
+    case 'blockreference_autocomplete':
+      $element += array(
+        '#type' => 'textfield',
+        '#default_value' => isset($items[$delta]['bid']) ? $items[$delta]['bid'] : NULL,
+        '#autocomplete_path' => $instance['widget']['settings']['autocomplete_path'] . '/' . $instance['entity_type'] . '/' . $field['field_name'],
+        '#size' => $instance['widget']['settings']['size'],
+        '#element_validate' => array('blockreference_autocomplete_validate'),
+        '#value_callback' => 'blockreference_autocomplete_value',
       );
       break;
     case 'blockreference_select_sort':
@@ -385,272 +282,168 @@ function blockreference_widget(&$form, &$form_state, $field, $items, $delta = 0)
         '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
       );
       break;
-    case 'blockreference_autocomplete':
-      $element = array(
-        '#type' => 'blockreference_autocomplete',
-        '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
-        '#value_callback' => 'blockreference_autocomplete_value',
-      );
-      break;
   }
-  return $element;
-}
-
-/**
- * Value for a blockreference autocomplete element.
- *
- * Substitute in the block title for the block bid.
- */
-function blockreference_autocomplete_value($element, $edit = FALSE) {
-  $field_key = $element['#columns'][0];
-  if (!empty($element['#default_value'][$field_key])) {
-    $bid = $element['#default_value'][$field_key];
-    $args[] = $bid;
-    $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%d'", 'blocks', 'bid', $args), $args);
-    $block = db_fetch_object($result);
-    $info = module_invoke($block->module, 'block', 'list');
-    $value = $info[$block->delta]['info'];
-    $value .= ' [bid:'. $bid .']';
-    return array($field_key => $value);
-  }
-  return array($field_key => NULL);
-}
-
-/**
- * Process an individual element.
- *
- * Build the form element. When creating a form using FAPI #process,
- * note that $element['#value'] is already set.
- *
- * The $fields array is in $form['#field_info'][$element['#field_name']].
- */
-function blockreference_select_process($element, $edit, $form_state, $form) {
-  // The blockreference_select widget doesn't need to create its own
-  // element, it can wrap around the optionwidgets_select element.
-  // Add a validation step where the value can be unwrapped.
-  $field_key  = $element['#columns'][0];
-  $element[$field_key] = array(
-    '#type' => 'optionwidgets_select',
-    '#default_value' => isset($element['#value']) ? $element['#value'] : '',
-
-    // The following values were set by the content module and need
-    // to be passed down to the nested element.
-    '#field_name' => $element['#field_name'],
-    '#delta' => $element['#delta'],
-    '#columns' => $element['#columns'],
-    '#title' => $element['#title'],
-    '#required' => $element['#required'],
-    '#description' => $element['#description'],
-  );
-  if (empty($element[$field_key]['#element_validate'])) {
-    $element[$field_key]['#element_validate'] = array();
-  }
-  array_unshift($element[$field_key]['#element_validate'], 'optionwidgets_validate', 'blockreference_select_validate');
 
   return $element;
 }
 
 /**
- * Process an individual element.
+ * Value callback for a blockreference autocomplete element.
  *
- * Build the form element. When creating a form using FAPI #process,
- * note that $element['#value'] is already set.
- *
- * The $fields array is in $form['#field_info'][$element['#field_name']].
+ * Replace the block bid with a block title.
  */
-function blockreference_select_sort_process($element, $edit, $form_state, $form) {
-  $field = $form['#field_info'][$element['#field_name']];
-  $field_key  = $element['#columns'][0];
-  $element[$field_key] = array(
-    '#type' => 'select',
-    '#options' => blockreference_allowed_values($field),
-    '#multiple' => 0,
-    '#default_value' => isset($element['#value'][$element['#columns'][0]]) ? $element['#value'][$element['#columns'][0]] : '',
-
-    // The following values were set by the content module and need
-    // to be passed down to the nested element.
-    '#field_name' => $element['#field_name'],
-    '#delta' => $element['#delta'],
-    '#columns' => $element['#columns'],
-    '#title' => $element['#title'],
-    '#required' => $element['#required'],
-    '#description' => $element['#description'],
-  );
-  return $element;
-}
-
-/**
- * Process an individual element.
- *
- * Build the form element. When creating a form using FAPI #process,
- * note that $element['#value'] is already set.
- *
- */
-function blockreference_autocomplete_process($element, $edit, $form_state, $form) {
-  // The blockreference autocomplete widget doesn't need to create its own
-  // element, it can wrap around the text_textfield element and add an autocomplete
-  // path and some extra processing to it.
-  // Add a validation step where the value can be unwrapped.
-  $field_key  = $element['#columns'][0];
-
-  $element[$field_key] = array(
-    '#type' => 'text_textfield',
-    '#default_value' => isset($element['#value']) ? $element['#value'] : '',
-    '#autocomplete_path' => 'blockreference/autocomplete/'. $element['#field_name'],
-
-    // The following values were set by the content module and need
-    // to be passed down to the nested element.
-    '#field_name' => $element['#field_name'],
-    '#delta' => $element['#delta'],
-    '#columns' => $element['#columns'],
-    '#title' => $element['#title'],
-    '#required' => $element['#required'],
-    '#description' => $element['#description'],
-  );
-  if (empty($element[$field_key]['#element_validate'])) {
-    $element[$field_key]['#element_validate'] = array();
-  }
-  array_unshift($element[$field_key]['#element_validate'], 'blockreference_autocomplete_validate');
-
-  return $element;
-}
-
-/**
- * Validate an select element.
- *
- * Remove the wrapper layer and set the right element's value.
- * We don't know exactly where this element is, so we drill down
- * through the element until we get to our key.
- */
-function blockreference_select_validate($element, &$form_state) {
-  $field_key = $element['#columns'][0];
-  $new_parents = array();
-  $value = $form_state['values'];
-  foreach ($element['#parents'] as $parent) {
-    $value = $value[$parent];
-    if ($parent == $field_key) {
-      $element['#parents'] = $new_parents;
-      form_set_value($element, $value, $form_state);    
-      break;
+function blockreference_autocomplete_value($element, $input = FALSE, $form_state) {
+  if ($input === FALSE) {
+    // We're building the displayed 'default value': expand the raw bid into
+    // "block title [bid:n]".
+    $bid = $element['#default_value'];
+    if (!empty($bid)) {
+      $result = db_query('SELECT module, delta FROM {block} WHERE bid = :bid', array(':bid' => $bid));
+      $block = $result->fetchObject();
+      $info = module_invoke($block->module, 'block_info');
+      $value = $info[$block->delta]['info'];
+      $value .= ' [bid:' . $bid . ']';
+      return $value;
     }
-    $new_parents[] = $parent;
   }
 }
 
 /**
- * Validate an autocomplete element.
- *
- * Remove the wrapper layer and set the right element's value.
+ * Validation callback for a blockreference autocomplete element.
  */
-function blockreference_autocomplete_validate($element, &$form_state) {
-  $field_name = $element['#field_name'];
-  $field = content_fields($field_name);
-  $field_key  = $element['#columns'][0];
-  $delta = $element['#delta'];
-  $value = $element['#value'][$field_key];
+function blockreference_autocomplete_validate($element, &$form_state, $form) {
+  $field = $form_state['field'][$element['#field_name']][$element['#language']]['field'];
+  $instance = $form_state['field'][$element['#field_name']][$element['#language']]['instance'];
+
+  $value = $element['#value'];
   $bid = NULL;
+
   if (!empty($value)) {
+    // Check whether we have an explicit "[bid:n]" input.
     preg_match('/^(?:\s*|(.*) )?\[\s*bid\s*:\s*(\d+)\s*\]$/', $value, $matches);
     if (!empty($matches)) {
-      // explicit bid
-      list(, $info, $bid) = $matches;
-
-      $args[] = $bid;
-      $result = db_query(db_rewrite_sql("SELECT b.module, b.delta FROM {blocks} b WHERE b.bid = '%s'", 'blocks', 'bid', $args), $args);
-      $block = db_fetch_object($result);
+      // Explicit bid. Check that the 'title' part matches the actual title for
+      // the bid.
+      list(, $title, $bid) = $matches;
+      $result = db_query('SELECT module, delta FROM {block} WHERE bid = :bid', array(':bid' => $bid));
+      $block = $result->fetchObject();
       $info = module_invoke($block->module, 'block', 'list');
       $block->info = $info[$block->delta]['info'];
 
-      if (!empty($title) && ($b = db_fetch_object($result)) && $info != $b->info) {  
-        form_set_error($element[$field_key], t('%name: Title mismatch. Please check your selection.'), array('%name' => t($element[$field_key]['#title'])));
+      if (!empty($title) && ($b = db_fetch_object($result)) && $info != $b->info) {
+        form_error($element, t('%name: Title mismatch. Please check your selection.'), array('%name' => $instance['label']));
       }
+
     }
     else {
-      // no explicit bid
-      // TODO :
-      // the best thing would be to present the user with an additional form,
-      // allowing the user to choose between valid candidates with the same title
-      // ATM, we pick the first matching candidate...
+      // No explicit bid (the submitted value was not populated by autocomplete
+      // selection). Get the bid of a referencable block from the entered title.
       $bids = _blockreference_potential_references($field, FALSE, $value, TRUE);
-      $bid = (!empty($bids)) ? array_shift(array_keys($bids)) : 0;
+      if ($reference) {
+        // @todo The best thing would be to present the user with an
+        // additional form, allowing the user to choose between valid
+        // candidates with the same title. ATM, we pick the first
+        // matching candidate...
+        $bid = (!empty($bids)) ? array_shift(array_keys($bids)) : 0;
+      }
+      else {
+        form_error($element, t('%name: Found no valid block with that title.', array('%name' => $instance['label'])));
+      }
     }
   }
+
+  // Set the element's value as the node id that was extracted from the entered
+  // input.
   form_set_value($element, $bid, $form_state);
-  return $element;
+
 }
 
 /**
- * Implementation of hook_allowed_values().
+ * Implements hook_field_widget_error().
  */
-function blockreference_allowed_values($field) {
-  $options = _blockreference_potential_references($field, TRUE);
-  
-  foreach ($options as $key => $value) {
-    $options[$key] = _blockreference_item($field, $value);
-  }
-  if (!$field['required']) {
-    $options = array(0 => '<'. t('none') .'>') + $options;
-  }
-  return $options;
+function blockreference_field_widget_error($element, $error, $form, &$form_state) {
+  form_error($element['bid'], $error['message']);
 }
 
 /**
- * Fetch an array of all candidate referenced blocks,
- * for use in presenting the selection form to the user.
- * 
+ * Fetch an array of all candidate referenced blocks.
  */
-function _blockreference_potential_references($field, $return_full_blocks = FALSE, $string = '', $exact_string = false) {
+function _blockreference_potential_references($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
+  $results = &drupal_static(__FUNCTION__, array());
+
+  // Create unique id for static cache.
+  $cid = $field['field_name'] . ':'
+    . ($return_full_blocks ? 1 : 0) . ':'
+    . $string . ':'
+    . ($exact_string ? 1 : 0);
+  if (!isset($results[$cid])) {
+    $references = _blockreference_potential_references_standard($field, $return_full_blocks, $string, $exact_string);
+
+    // Store the results.
+    $results[$cid] = !empty($references) ? $references : array();
+  }
+
+  return $results[$cid];
+
+}
+
+/**
+ * Build an array of all candidate referenced blocks.
+ */
+function _blockreference_potential_references_standard($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   // build the appropriate query
   $related_regions = array();
   $args = array();
+  $settings = &$field['settings'];
 
-  if (is_array($field['referenceable_regions'])) {
-    foreach ((array)$field['referenceable_regions'] as $related_region) {
+  if (is_array($settings['referenceable_regions'])) {
+    foreach ((array)$settings['referenceable_regions'] as $key => $related_region) {
       if (isset($related_region)) {
-        $related_regions[] = " b.region = '%s'";
-        $args[] = $related_region;
+        $placeholder = ':region_' . $key;
+        $related_regions[] = ' region = ' . $placeholder;
+        $args[$placeholder] = $related_region;
       }
     }
   }
-
-  $related_clause = implode(' OR ', $related_regions);
 
   if (!count($related_regions)) {
     return array();
   }
 
-  if (isset($string)) {
-    //$string_clause = $exact_string ? " AND b.title = '%s'" : " AND b.title LIKE '%%%s%'"; <- doesn't work because the title is often blank or <none>
-    $string_clause = "";
-    $related_clause = "(". $related_clause .")". $string_clause;
-    //$args[] = $string;
-  }
+  $related_clause = '(' . implode(' OR ', $related_regions) . ')';
 
-  $result = db_query(db_rewrite_sql("SELECT b.bid, b.module, b.delta, b.title, b.region FROM {blocks} b WHERE b.theme = '". variable_get('theme_default', 'garland') ."' AND ". $related_clause ." ORDER BY b.region, b.weight", 'blocks', 'bid', $args), $args);
+  $result = db_query(
+    'SELECT bid, module, delta, title, region ' .
+    'FROM {block} ' .
+    "WHERE theme = '" . variable_get('theme_default', 'bartik') . "' " .
+    'AND ' . $related_clause . ' ' .
+    'ORDER BY region, weight',
+    $args
+  );
 
   $rows = array();
 
-  while ($block = db_fetch_object($result)) {
+  foreach ($result as $block) {
     $allowed = FALSE;
-    $info = module_invoke($block->module, 'block', 'list');
+    $info = module_invoke($block->module, 'block_info');
     $block->info = $info[$block->delta]['info'];
     // reject rows that don't match
     if ($exact_string && !empty($string)) {
       if ($string == $info[$block->delta]['info']) {
         $allowed = TRUE;
-      }  
+      }
     }
-    else if (!empty($string)) {
+    elseif (!empty($string)) {
       if (!empty($block->info) && stripos($block->info, $string) !== FALSE) {
         $allowed = TRUE;
       }
-      else if (!empty($block->title) && stripos($block->title, $string) !== FALSE) {
+      elseif (!empty($block->title) && stripos($block->title, $string) !== FALSE) {
         $allowed = TRUE;
       }
-      else if (!empty($block->module) && stripos($block->module ." ". $block->delta, $string) !== FALSE) {
+      elseif (!empty($block->module) && stripos($block->module . ' ' . $block->delta, $string) !== FALSE) {
         $allowed = TRUE;
       }
-      else if (!empty($block->bid) && stripos($block->bid, $string) !== FALSE) {
+      elseif (!empty($block->bid) && stripos($block->bid, $string) !== FALSE) {
         $allowed = TRUE;
       }
     }
@@ -660,7 +453,7 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
     if ($return_full_blocks && $allowed) {
       $rows[$block->bid] = $block;
     }
-    else if ($allowed) {
+    elseif ($allowed) {
       $rows[$block->bid] = $block->info;
     }
   }
@@ -669,64 +462,274 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
 
 }
 
+
 /**
- * Retrieve a pipe delimited string of autocomplete suggestions
+ * Menu access callback for the autocomplete path.
+ *
+ * Check for both 'edit' and 'view' access in the unlikely event
+ * a user has edit but not view access.
  */
-function blockreference_autocomplete($field_name, $string = '') {
-  $fields = content_fields();
-  $field = $fields[$field_name];
+function blockreference_autocomplete_access($entity_type, $field_name) {
+  return user_access('access content') && ($field = field_info_field($field_name)) && field_access('view', $field, $entity_type) && field_access('edit', $field, $entity_type);
+}
+
+/**
+ * Menu callback for the autocomplete results.
+ */
+function blockreference_autocomplete($entity_type, $field_name, $string = '') {
+  $field = field_info_field($field_name);
+
   $matches = array();
   $references = _blockreference_potential_references($field, TRUE, $string);
   foreach ($references as $rowbid => $rowname) {
-    $matches[_blockreference_item($field, $rowname) .' [bid:'. $rowbid .']'] = _blockreference_item($field, $rowname);
+    $matches[_blockreference_item($field, $rowname) . ' [bid:' . $rowbid . ']'] = _blockreference_item($field, $rowname);
   }
-  drupal_json($matches);
-}
 
-function _blockreference_item($field, $item, $html = FALSE) {
-  $output = theme('blockreference_item_simple', $item);
-  $output = $html ? check_plain($output) : $output;
-  return $output;
-}
-
-function theme_blockreference_item_advanced($item, $field_names, $view) {
-  $item_fields = array();
-  $item = (array) $item;
-  foreach ($item as $delta => $value) {
-    // remove link tags (ex : for block titles)
-    $value = preg_replace('/<a[^>]*>(.*)<\/a>/iU', '$1', $value);
-    if (!empty($value)) {
-      $item_fields[] = "<span class='view-field view-data-$field_names[$delta]'>$value</span>";;
-    }
-  }
-  $output = implode(' - ', $item_fields);
-  $output = "<span class='view-item view-item-$view->name'>$output</span>";
-  return $output;
-}
-
-function theme_blockreference_item_simple($item) {
-  return $item->info;
+  drupal_json_output($matches);
 }
 
 /**
- * FAPI theme for an individual elements.
- *
- * The textfield or select is already rendered by the
- * textfield or select themes and the html output
- * lives in $element['#children']. Override this theme to
- * make custom changes to the output.
- *
- * $element['#field_name'] contains the field name
- * $element['#delta]  is the position of this element in the group
+ * Implements hook_options_list().
  */
-function theme_blockreference_select($element) {
-  return $element['#children'];
+function blockreference_options_list($field) {
+  return _blockreference_potential_references($field);
 }
 
-function theme_blockreference_select_sort($element) {
-  return $element['#children'];
+/**
+ * Implements hook_content_migrate_instance_alter().
+ *
+ * Use this to tweak the conversion of instance or widget settings from the D6
+ * style to the D7 style for specific situations not handled by basic
+ * conversion, as when formatter or widget names or settings are changed.
+ */
+function blockreference_content_migrate_instance_alter(&$instance_value) {
+  // The module name for the instance was corrected
+  // by the change in blockreference_content_migrate_field_alter().
+  switch ($instance_value['module']) {
+    case 'blockreference':
+      // The formatter names changed, all are prefixed
+      // with 'blockreference_'.
+      foreach ($instance_value['display'] as $context => $settings) {
+        $instance_value['display'][$context]['type'] = 'blockreference_' . $settings['type'];
+      }
+      switch ($instance_value['widget']['type']) {
+        case 'blockreference_autocomplete':
+          $instance_value['widget']['type'] = 'blockreference_autocomplete';
+          $instance_value['widget']['module'] = 'blockreference';
+          break;
+        case 'blockreference_select':
+          $instance_value['widget']['type'] = 'options_select';
+          $instance_value['widget']['module'] = 'options';
+          break;
+        case 'blockreference_buttons':
+          $instance_value['widget']['type'] = 'options_buttons';
+          $instance_value['widget']['module'] = 'options';
+      }
+      break;
+  }
 }
 
-function theme_blockreference_autocomplete($element) {
-  return $element['#children'];
+
+/**
+ * Helper function for theming normal block views, returns appropriate block.
+ */
+function blockreference_formatter_get_block($element) {
+  if (!empty($element['item']['bid']) && is_numeric($element['item']['bid'])) {
+    $result = db_query('SELECT * FROM {block} WHERE bid = :bid', array(':bid' => $element['item']['bid']));
+    $block = $result->fetchObject();
+    $block->enabled = TRUE;
+    $block->status = TRUE;
+    $block->page_match = TRUE;
+    return $block;
+  }
+  return FALSE;
+}
+
+/**
+ * Theme function for simple display of a block item.
+ */
+function theme_blockreference_item_simple($variables) {
+  return $variables['item']->info;
+}
+
+/**
+ * Theme function for 'default' blockreference field formatter.
+ */
+function theme_blockreference_formatter_default($variables) {
+  $element = &$variables['element'];
+  $output = '';
+  $block = blockreference_formatter_get_block($element);
+  if ($block) {
+    $block_content = _block_render_blocks(array($block));
+    $build = _block_get_renderable_array($block_content);
+    $output = drupal_render($build);
+  }
+  return $output;
+}
+
+/**
+ * Theme function for 'without_title' blockreference field formatter.
+ */
+function theme_blockreference_formatter_without_title($variables) {
+  $element = &$variables['element'];
+  $block = blockreference_formatter_get_block($element);
+  $block->title = '';
+  $block->subject = '';
+  $output = '';
+  if ($block) {
+    $block_content = _block_render_blocks(array($block));
+    $build = _block_get_renderable_array($block_content);
+    $output = drupal_render($build);
+  }
+  return $output;
+}
+
+/**
+ * Theme function for 'plain' blockreference field formatter.
+ */
+function theme_blockreference_formatter_plain($variables) {
+  $element = &$variables['element'];
+  $output = '';
+  $block = blockreference_formatter_get_block($element);
+  if ($block) {
+    $info = module_invoke($block->module, 'block_info');
+    $output = $info[$block->delta]['info'];
+  }
+  return $output;
+}
+
+/**
+ * Theme function for 'title' blockreference field formatter.
+ */
+function theme_blockreference_formatter_title($variables) {
+  $element = &$variables['element'];
+  $output = '';
+  $block = blockreference_formatter_get_block($element);
+  if ($block) {
+    $block_content = _block_render_blocks(array($block));
+    $block_content = reset($block_content);
+    $output = $block_content->subject;
+  }
+  return $output;
+}
+
+/**
+ * Implements hook_field_views_data().
+ *
+ * In addition to the default field information we add the relationship for
+ * views to connect back to the block table.
+ */
+function blockreference_field_views_data($field) {
+  // No module_load_include(): this hook is invoked from
+  // views/modules/field.views.inc, which is where that function is defined.
+  $data = field_views_field_default_views_data($field);
+
+  $storage = $field['storage']['details']['sql'];
+
+  foreach ($storage as $age => $table_data) {
+    $table = key($table_data);
+    $columns = current($table_data);
+    $id_column = $columns['bid'];
+    if (isset($data[$table])) {
+      $data[$table][$id_column]['relationship'] = array(
+        'base' => 'block',
+        'field' => 'bid',
+        'base field' => 'bid',
+        'label' => $field['field_name'],
+      );
+    }
+  }
+
+  return $data;
+
+  /*
+
+    D6 code for reference
+
+
+        $data = content_views_field_views_data($field);
+        $db_info = content_database_info($field);
+        $table_alias = content_views_tablename($field);
+
+        // Swap the filter handler to the 'in' operator.
+        $data[$table_alias][$field['field_name'] .'_bid']['filter']['handler'] = 'views_handler_filter_many_to_one_content';
+
+        // Add a relationship for related block.
+        $data[$table_alias][$field['field_name'] .'_bid']['relationship'] = array(
+          'base' => 'blocks',
+          'field' => $db_info['columns']['bid']['column'],
+          'handler' => 'views_handler_relationship',
+        );
+        return $data;
+
+
+  */
+
+}
+
+
+
+/**
+ * Implements hook_element_info().
+ */
+function blockreference_element_info() {
+  return array(
+    'blockreference_select_sort' => array(
+      '#input' => TRUE,
+      '#columns' => array('bid'),
+      '#delta' => 0,
+      '#process' => array('blockreference_select_sort_process'),
+    ),
+  );
+}
+
+/**
+ * Process callback for a blockreference_select_sort element.
+ *
+ * @see blockreference_element_info().
+ */
+function blockreference_select_sort_process($element, $form_state, $form) {
+  $field_name = $element['#parents'][0];
+  $language = $element['#parents'][1];
+  $field = $form_state['field'][$field_name];
+  $instance = $field[$language]['instance'];
+
+  $element[$element['#columns'][0]] = array(
+    '#type' => 'select',
+    '#options' => blockreference_list_values($field, $language),
+    '#multiple' => 0,
+    '#default_value' => isset($element['#value'][$element['#columns'][0]]) ? $element['#value'][$element['#columns'][0]] : '',
+    '#delta' => $element['#delta'],
+    '#columns' => $element['#columns'],
+    '#title' => $instance['label'],
+    '#required' => $element['#required'],
+    '#description' => isset($element['#description']) ? $element['#description'] : '',
+  );
+  return $element;
+}
+
+
+/**
+ * Build the select options for a blockreference_select_sort element.
+ */
+function blockreference_list_values($field, $language) {
+  $instance = $field[$language]['instance'];
+  $options = _blockreference_potential_references($field[$language]['field'], TRUE);
+
+  foreach ($options as $key => $value) {
+    $options[$key] = _blockreference_item($field, $value);
+  }
+  if (!$instance['required']) {
+    $options = array(0 => '<' . t('none') . '>') + $options;
+  }
+  return $options;
+}
+
+/**
+ * Get the HTML for a block display title.
+ */
+function _blockreference_item($field, $item, $html = FALSE) {
+  $output = theme('blockreference_item_simple', array('item' => $item));
+  $output = $html ? check_plain($output) : $output;
+  return $output;
 }

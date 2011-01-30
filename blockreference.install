@@ -2,33 +2,6 @@
 // $Id$
 
 /**
- * Implementation of hook_install().
+ * @file
+ * Block reference install file.
  */
-function blockreference_install() {
-  content_notify('install', 'blockreference');
-}
-
-/**
- * Implementation of hook_uninstall().
- */
-function blockreference_uninstall() {
-  content_notify('uninstall', 'blockreference');
-}
-
-/**
- * Implementation of hook_enable().
- *
- * Notify content module when this module is enabled.
- */
-function blockreference_enable() {
-  content_notify('enable', 'blockreference');
-}
-
-/**
- * Implementation of hook_disable().
- *
- * Notify content module when this module is disabled.
- */
-function blockreference_disable() {
-  content_notify('disable', 'blockreference');
-}
