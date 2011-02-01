@@ -100,6 +100,15 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
     '#options'       => system_region_list(variable_get('theme_default', 'bartik')) + array('' => t('Disabled')),
     '#disabled'      => $has_data,
   );
+  $form['respect_visibility'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Respect block visibility settings'),
+    '#default_value' => isset($settings['respect_visibility'])
+      ? $settings['respect_visibility']
+      : 0,
+    '#description' => t('Allows the block module to remove the block if it is restricted by visibility settings.'),
+    '#disabled'      => $has_data,
+  );
   return $form;
 }
 
@@ -535,12 +544,26 @@ function blockreference_content_migrate_instance_alter(&$instance_value) {
  */
 function blockreference_formatter_get_block($element) {
   if (!empty($element['item']['bid']) && is_numeric($element['item']['bid'])) {
-    $result = db_query('SELECT * FROM {block} WHERE bid = :bid', array(':bid' => $element['item']['bid']));
-    $block = $result->fetchObject();
-    $block->enabled = TRUE;
-    $block->status = TRUE;
-    $block->page_match = TRUE;
-    return $block;
+    $bid = &$element['item']['bid'];
+
+    $query = db_select('block', 'b');
+    $result = $query
+      ->fields('b')
+      ->condition('b.bid', $bid)
+      ->addTag('block_load')
+      ->addTag('translatable')
+      ->execute();
+
+    $blocks = $result->fetchAllAssoc('bid');
+
+    if ($element['field']['settings']['respect_visibility']) {
+      // Allow modules to modify the block list.
+      drupal_alter('block_list', $blocks);
+    }
+
+    if (isset($blocks[$bid])) {
+      return $blocks[$bid];
+    }
   }
   return FALSE;
 }
