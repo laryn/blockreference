@@ -1,4 +1,3 @@
-; $Id$
 name = Block reference
 description = Defines a field type for referencing a block from a node.
 package = Fields
