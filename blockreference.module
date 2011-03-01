@@ -345,7 +345,7 @@ function blockreference_autocomplete_validate($element, &$form_state, $form) {
       list(, $title, $bid) = $matches;
       $result = db_query('SELECT module, delta FROM {block} WHERE bid = :bid', array(':bid' => $bid));
       $block = $result->fetchObject();
-      $info = module_invoke($block->module, 'block', 'list');
+      $info = module_invoke($block->module, 'block_info');
       $block->info = $info[$block->delta]['info'];
 
       if (!empty($title) && ($b = db_fetch_object($result)) && $info != $b->info) {
@@ -466,7 +466,7 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   $rows = array();
   foreach ($result as $block) {
     if (!isset($block_info[$block->delta])) {
-      $block_info[$block->delta] = module_invoke($block->module, 'block', 'list');
+      $block_info[$block->delta] = module_invoke($block->module, 'block_info');
     }
     $block->info = $block_info[$block->delta]['info'];
     if (
