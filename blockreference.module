@@ -400,6 +400,7 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
  */
 function _blockreference_potential_references_standard($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   // build the appropriate query
+  static $block_info = array();
   $related_regions = array();
   $args = array();
   $settings = &$field['settings'];
@@ -432,38 +433,35 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   $rows = array();
 
   foreach ($result as $block) {
-    $allowed = FALSE;
-    $info = module_invoke($block->module, 'block_info');
-    $block->info = $info[$block->delta]['info'];
-    // reject rows that don't match
-    if ($exact_string && !empty($string)) {
-      if ($string == $info[$block->delta]['info']) {
-        $allowed = TRUE;
-      }
+
+    if (!isset($block_info[$block->delta])) {
+      $block_info[$block->delta] = module_invoke($block->module, 'block', 'list');
     }
-    elseif (!empty($string)) {
-      if (!empty($block->info) && stripos($block->info, $string) !== FALSE) {
-        $allowed = TRUE;
-      }
-      elseif (!empty($block->title) && stripos($block->title, $string) !== FALSE) {
-        $allowed = TRUE;
-      }
-      elseif (!empty($block->module) && stripos($block->module . ' ' . $block->delta, $string) !== FALSE) {
-        $allowed = TRUE;
-      }
-      elseif (!empty($block->bid) && stripos($block->bid, $string) !== FALSE) {
-        $allowed = TRUE;
-      }
+
+    $block->info = $block_info[$block->delta]['info'];
+
+    if (
+      (
+        $exact_string &&
+        !empty($string) &&
+        $string == $info[$block->delta]['info']
+      ) ||
+      (
+        !empty($string) &&
+        (
+          (!empty($block->info) && stripos($block->info, $string) !== FALSE) ||
+          (!empty($block->title) && stripos($block->title, $string) !== FALSE) ||
+          (!empty($block->module) && stripos($block->module . ' ' . $block->delta, $string) !== FALSE) ||
+          (!empty($block->bid) && stripos($block->bid, $string) !== FALSE)
+        )
+      ) ||
+      (
+        empty($string)
+      )
+    ) {
+      $rows[$block->bid] = $return_full_blocks ? $block : $block->info;
     }
-    else {
-      $allowed = TRUE;
-    }
-    if ($return_full_blocks && $allowed) {
-      $rows[$block->bid] = $block;
-    }
-    elseif ($allowed) {
-      $rows[$block->bid] = $block->info;
-    }
+
   }
 
   return $rows;
