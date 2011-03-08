@@ -417,7 +417,7 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   $settings = &$field['settings'];
 
   // Handle related regions - this will be used in extra query conditions.
-  if (is_array($settings['referenceable_regions'])) {
+  if (isset($settings['referenceable_regions'])) {
     foreach ($settings['referenceable_regions'] as $key => $related_region) {
       if ($related_region !== 0 && $related_region != '0') {
         $placeholder = ':region_' . $key;
@@ -431,7 +431,7 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   }
 
   // Handle related modules - this will be used in extra query conditions.
-  if (is_array($field['referenceable_modules'])) {
+  if (isset($field['referenceable_modules'])) {
     foreach ($field['referenceable_modules'] as $key => $related_module) {
       if ($related_module !== 0 && $related_module != '0') {
         $placeholder = ':module_' . $key;
@@ -465,15 +465,15 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   // Execute the query, test each row, and return the blocks or block info.
   $rows = array();
   foreach ($result as $block) {
-    if (!isset($block_info[$block->delta])) {
-      $block_info[$block->delta] = module_invoke($block->module, 'block_info');
+    if (!isset($block_info[$block->module][$block->delta])) {
+      $block_info[$block->module] = module_invoke($block->module, 'block_info');
     }
-    $block->info = $block_info[$block->delta]['info'];
+    $block->info = $block_info[$block->module][$block->delta]['info'];
     if (
       (
         $exact_string &&
         !empty($string) &&
-        $string == $info[$block->delta]['info']
+        $string == $block->info
       ) ||
       (
         !empty($string) &&
