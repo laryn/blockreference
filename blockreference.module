@@ -93,7 +93,7 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
     '#type'          => 'checkboxes',
     '#title'         => t('Regions containing blocks that can be referenced'),
     '#multiple'      => TRUE,
-    '#default_value' => is_array($settings['referenceable_regions'])
+    '#default_value' => isset($settings['referenceable_regions'])
       ? $settings['referenceable_regions']
       : array(),
     '#options'       => system_region_list(variable_get('theme_default', 'bartik')) + array('' => t('Disabled')),
@@ -103,7 +103,7 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
     '#type'          => 'checkboxes',
     '#title'         => t('Modules defining blocks that can be referenced'),
     '#multiple' => TRUE,
-    '#default_value' => is_array($settings['referenceable_modules'])
+    '#default_value' => isset($settings['referenceable_modules'])
       ? $settings['referenceable_modules']
       : array(),
     '#options'       => module_list(FALSE, TRUE, TRUE),
