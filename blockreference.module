@@ -83,6 +83,30 @@ function blockreference_field_schema($field) {
 }
 
 /**
+ * Get an array of block modules, where the keys are the module short name and
+ * the values are the module name as set in the .info file.
+ */
+function blockreference_get_block_modules() {
+  $block_modules = array();
+
+  // Get current list of modules
+  $files = drupal_system_listing('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.module$/', 'modules', 'name', 0);
+
+  // Get modules that define blocks.
+  $modules = module_implements('block_info', TRUE);
+
+  foreach ($modules as $module) {
+    if (isset($files[$module])) {
+      $file = &$files[$module];
+      // Look for the info file.
+      $file->info = drupal_parse_info_file(dirname($file->uri) . '/' . $file->name . '.info');
+      $block_modules[$module] = isset($file->info['name']) ? $file->info['name'] : ucfirst($module);
+    }
+  }
+  return $block_modules;
+}
+
+/**
  * Implements hook_field_settings_form().
  */
 function blockreference_field_settings_form($field, $instance, $has_data) {
@@ -97,7 +121,8 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
       ? $settings['referenceable_regions']
       : array(),
     '#options'       => system_region_list(variable_get('theme_default', 'bartik')) + array('' => t('Disabled')),
-    '#disabled'      => $has_data,
+    //'#disabled'      => $has_data,  - This is just annoying.
+    '#description' => t('If no regions are selected, blocks from all regions will be available.'),
   );
   $form['referenceable_modules'] = array(
     '#type'          => 'checkboxes',
@@ -106,8 +131,9 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
     '#default_value' => isset($settings['referenceable_modules'])
       ? $settings['referenceable_modules']
       : array(),
-    '#options'       => module_list(FALSE, TRUE, TRUE),
-    '#disabled'      => $has_data,
+    '#options'       => blockreference_get_block_modules(),
+    //'#disabled'      => $has_data,  - This is just annoying.
+    '#description' => t('If no modules are selected, blocks from all modules will be available.'),
   );
   $form['respect_visibility'] = array(
     '#type'          => 'checkbox',
@@ -116,7 +142,7 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
       ? $settings['respect_visibility']
       : 0,
     '#description' => t('Allows the block module to remove the block if it is restricted by visibility settings.'),
-    '#disabled'      => $has_data,
+    //'#disabled'      => $has_data,  - This is just annoying.
   );
   return $form;
 }
@@ -418,10 +444,11 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
 
   // Handle related regions - this will be used in extra query conditions.
   if (isset($settings['referenceable_regions'])) {
+    $settings['referenceable_regions'] = array_filter($settings['referenceable_regions']);
     foreach ($settings['referenceable_regions'] as $key => $related_region) {
-      if ($related_region !== 0 && $related_region != '0') {
+      if ($related_region) {
         $placeholder = ':region_' . $key;
-        $related_regions[] = ' region = ' . $placeholder;
+        $related_regions[] = 'region = ' . $placeholder;
         $args[$placeholder] = $related_region;
       }
     }
@@ -431,11 +458,12 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   }
 
   // Handle related modules - this will be used in extra query conditions.
-  if (isset($field['referenceable_modules'])) {
-    foreach ($field['referenceable_modules'] as $key => $related_module) {
-      if ($related_module !== 0 && $related_module != '0') {
+  if (isset($settings['referenceable_modules'])) {
+    $settings['referenceable_modules'] = array_filter($settings['referenceable_modules']);
+    foreach ($settings['referenceable_modules'] as $key => $related_module) {
+      if ($related_module) {
         $placeholder = ':module_' . $key;
-        $related_modules[] = ' module = ' . $placeholder;
+        $related_modules[] = 'module = ' . $placeholder;
         $args[$placeholder] = $related_module;
       }
     }
@@ -444,13 +472,8 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
     $related_clauses[] = implode(' OR ', $related_modules);
   }
 
-  // Return no blocks when options aren't set.
-  if (empty($related_regions) && empty($related_modules)) {
-    return array();
-  }
-
   // Assemble the extra query condition.
-  $related_clause = !empty($related_clauses) ? ' AND ('. implode(') AND (', $related_clauses) .')' : '';
+  $related_clause = !empty($related_clauses) ? ' AND (' . implode(') AND (', $related_clauses) . ')' : '';
 
   // Assemble the query.
   $result = db_query(
@@ -766,7 +789,7 @@ function blockreference_list_values($field, $language) {
     $options[$key] = _blockreference_item($field, $value);
   }
   if (!$instance['required']) {
-    $options = array(0 => '<' . t('none') . '>') + $options;
+    $options = array(0 => '&lt;' . t('none') . '&gt;') + $options;
   }
   return $options;
 }
