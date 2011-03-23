@@ -443,7 +443,7 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   $settings = &$field['settings'];
 
   // Handle related regions - this will be used in extra query conditions.
-  if (isset($settings['referenceable_regions'])) {
+  if (isset($settings['referenceable_regions']) && is_array($settings['referenceable_regions'])) {
     $settings['referenceable_regions'] = array_filter($settings['referenceable_regions']);
     foreach ($settings['referenceable_regions'] as $key => $related_region) {
       if ($related_region) {
@@ -458,7 +458,7 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   }
 
   // Handle related modules - this will be used in extra query conditions.
-  if (isset($settings['referenceable_modules'])) {
+  if (isset($settings['referenceable_modules']) && is_array($settings['referenceable_modules'])) {
     $settings['referenceable_modules'] = array_filter($settings['referenceable_modules']);
     foreach ($settings['referenceable_modules'] as $key => $related_module) {
       if ($related_module) {
