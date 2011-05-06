@@ -319,7 +319,9 @@ function blockreference_field_widget_form(&$form, &$form_state, $field, $instanc
         '#element_validate' => array('blockreference_autocomplete_validate'),
         '#value_callback' => 'blockreference_autocomplete_value',
       );
+      $element = array('bid' => $element);
       break;
+
     case 'blockreference_select_sort':
       $element = array(
         '#type' => 'blockreference_select_sort',
@@ -369,15 +371,16 @@ function blockreference_autocomplete_validate($element, &$form_state, $form) {
       // Explicit bid. Check that the 'title' part matches the actual title for
       // the bid.
       list(, $title, $bid) = $matches;
-      $result = db_query('SELECT module, delta FROM {block} WHERE bid = :bid', array(':bid' => $bid));
-      $block = $result->fetchObject();
-      $info = module_invoke($block->module, 'block_info');
-      $block->info = $info[$block->delta]['info'];
+      if (!empty($title)) {
+        $result = db_query('SELECT module, delta FROM {block} WHERE bid = :bid', array(':bid' => $bid));
+        $block = $result->fetchObject();
+        $info = module_invoke($block->module, 'block_info');
+        $real_title = $info[$block->delta]['info'];
 
-      if (!empty($title) && ($b = db_fetch_object($result)) && $info != $b->info) {
-        form_error($element, t('%name: Title mismatch. Please check your selection.'), array('%name' => $instance['label']));
+        if (trim($title) != trim($real_title)) {
+          form_error($element, t('%name: Title mismatch. Please check your selection.', array('%name' => $instance['label'])));
+        }
       }
-
     }
     else {
       // No explicit bid (the submitted value was not populated by autocomplete
