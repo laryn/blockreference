@@ -792,7 +792,7 @@ function blockreference_list_values($field, $language) {
     $options[$key] = _blockreference_item($field, $value);
   }
 
-  array_multisort(array_map('strtolower', $options), $options);
+  natcasesort($options);
 
   if (!$instance['required']) {
     $options = array(0 => '&lt;' . t('none') . '&gt;') + $options;
