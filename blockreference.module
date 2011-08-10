@@ -491,30 +491,32 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   // Execute the query, test each row, and return the blocks or block info.
   $rows = array();
   foreach ($result as $block) {
-    if (!isset($block_info[$block->module][$block->delta])) {
+    if (!isset($block_info[$block->module])) {
       $block_info[$block->module] = module_invoke($block->module, 'block_info');
     }
-    $block->info = $block_info[$block->module][$block->delta]['info'];
-    if (
-      (
-        $exact_string &&
-        !empty($string) &&
-        $string == $block->info
-      ) ||
-      (
-        !empty($string) &&
+    if (isset($block_info[$block->module][$block->delta]['info'])) {
+      $block->info = $block_info[$block->module][$block->delta]['info'];
+      if (
         (
-          (!empty($block->info) && stripos($block->info, $string) !== FALSE) ||
-          (!empty($block->title) && stripos($block->title, $string) !== FALSE) ||
-          (!empty($block->module) && stripos($block->module . ' ' . $block->delta, $string) !== FALSE) ||
-          (!empty($block->bid) && stripos($block->bid, $string) !== FALSE)
+          $exact_string &&
+          !empty($string) &&
+          $string == $block->info
+        ) ||
+        (
+          !empty($string) &&
+          (
+            (!empty($block->info) && stripos($block->info, $string) !== FALSE) ||
+            (!empty($block->title) && stripos($block->title, $string) !== FALSE) ||
+            (!empty($block->module) && stripos($block->module . ' ' . $block->delta, $string) !== FALSE) ||
+            (!empty($block->bid) && stripos($block->bid, $string) !== FALSE)
+          )
+        ) ||
+        (
+          empty($string)
         )
-      ) ||
-      (
-        empty($string)
-      )
-    ) {
-      $rows[$block->bid] = $return_full_blocks ? $block : $block->info;
+      ) {
+        $rows[$block->bid] = $return_full_blocks ? $block : $block->info;
+      }
     }
   }
   return $rows;
@@ -795,7 +797,7 @@ function blockreference_list_values($field, $language) {
   natcasesort($options);
 
   if (!$instance['required']) {
-    $options = array(0 => '&lt;' . t('none') . '&gt;') + $options;
+    $options = array(0 => ' - ' . t('none') . ' - ') + $options;
   }
   return $options;
 }
