@@ -716,32 +716,7 @@ function blockreference_field_views_data($field) {
 
   return $data;
 
-  /*
-
-    D6 code for reference
-
-
-        $data = content_views_field_views_data($field);
-        $db_info = content_database_info($field);
-        $table_alias = content_views_tablename($field);
-
-        // Swap the filter handler to the 'in' operator.
-        $data[$table_alias][$field['field_name'] .'_bid']['filter']['handler'] = 'views_handler_filter_many_to_one_content';
-
-        // Add a relationship for related block.
-        $data[$table_alias][$field['field_name'] .'_bid']['relationship'] = array(
-          'base' => 'blocks',
-          'field' => $db_info['columns']['bid']['column'],
-          'handler' => 'views_handler_relationship',
-        );
-        return $data;
-
-
-  */
-
 }
-
-
 
 /**
  * Implements hook_element_info().
