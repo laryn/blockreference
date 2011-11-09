@@ -645,13 +645,12 @@ function theme_blockreference_formatter_default($variables) {
  * Theme function for 'without_title' blockreference field formatter.
  */
 function theme_blockreference_formatter_without_title($variables) {
-  $element = &$variables['element'];
-  $block = blockreference_formatter_get_block($element);
-  $block->title = '';
-  $block->subject = '';
+  $element = $variables['element'];
   $output = '';
+  $block = blockreference_formatter_get_block($element);
   if ($block) {
     $block_content = _block_render_blocks(array($block));
+    reset($block_content)->subject = '';
     $build = _block_get_renderable_array($block_content);
     $output = drupal_render($build);
   }
@@ -681,8 +680,7 @@ function theme_blockreference_formatter_title($variables) {
   $block = blockreference_formatter_get_block($element);
   if ($block) {
     $block_content = _block_render_blocks(array($block));
-    $block_content = reset($block_content);
-    $output = $block_content->subject;
+    $output = reset($block_content)->subject;
   }
   return $output;
 }
