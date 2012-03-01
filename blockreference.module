@@ -135,6 +135,19 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
     //'#disabled'      => $has_data,  - This is just annoying.
     '#description' => t('If no modules are selected, blocks from all modules will be available.'),
   );
+  $form['referenceable_operator'] = array(
+    '#type'          => 'radios',
+    '#title'         => t('Operator to use if referenceable regions and referenceable modules are selected.'),
+    '#default_value' => isset($settings['referenceable_operator'])
+      ? $settings['referenceable_operator']
+      : 'AND',
+    '#options'       => array(
+       'AND' => '<strong>AND</strong> - ' . t('Block must be both contained in a referenceable region and defined by a referenceable module.'), 
+       'OR'  => '<strong>OR</strong> - ' . t('Block must be either contained in a referenceable region or defined by a referenceable module.'),
+    ),
+    //'#disabled'      => $has_data,  - This is just annoying.
+    '#description' => t('If regions and modules are selected, choose operator to use when retrieving blocks list.'),
+  );
   $form['respect_visibility'] = array(
     '#type'          => 'checkbox',
     '#title'         => t('Respect block visibility settings'),
@@ -476,7 +489,8 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   }
 
   // Assemble the extra query condition.
-  $related_clause = !empty($related_clauses) ? ' AND (' . implode(') AND (', $related_clauses) . ')' : '';
+  $related_operator = !empty($settings['referenceable_operator']) ? $settings['referenceable_operator'] : 'AND';
+  $related_clause = !empty($related_clauses) ? ' AND (('. implode(') ' . $related_operator . ' (', $related_clauses) .'))' : '';
 
   // Assemble the query.
   $result = db_query(
