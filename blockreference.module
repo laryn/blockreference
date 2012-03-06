@@ -427,6 +427,18 @@ function blockreference_field_widget_error($element, $error, $form, &$form_state
 
 /**
  * Fetch an array of all candidate referenced blocks.
+ *
+ * @param $field
+ *  Array containing field data.
+ * @param $return_full_blocks
+ *  Whether to return full blocks.
+ * @param $string
+ *  Filter string to match blocks.
+ * @param $exact_string
+ *  Strictly match string like for validation.
+ *
+ * @return
+ *  An array of whatever is needed.
  */
 function _blockreference_potential_references($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   $results = &drupal_static(__FUNCTION__, array());
@@ -438,6 +450,7 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
     . ($exact_string ? 1 : 0);
   if (!isset($results[$cid])) {
     $references = _blockreference_potential_references_standard($field, $return_full_blocks, $string, $exact_string);
+    drupal_alter('blockreference_potential_references', $references, $field, $return_full_blocks, $string, $exact_string);
 
     // Store the results.
     $results[$cid] = !empty($references) ? $references : array();
@@ -449,6 +462,18 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
 
 /**
  * Build an array of all candidate referenced blocks.
+ *
+ * @param $field
+ *  Array containing field data.
+ * @param $return_full_blocks
+ *  Whether to return full blocks.
+ * @param $string
+ *  Filter string to match blocks.
+ * @param $exact_string
+ *  Strictly match string like for validation.
+ *
+ * @return
+ *  An array of whatever is needed.
  */
 function _blockreference_potential_references_standard($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   static $block_info = array();
