@@ -576,6 +576,15 @@ function blockreference_autocomplete_access($entity_type, $field_name) {
  * Menu callback for the autocomplete results.
  */
 function blockreference_autocomplete($entity_type, $field_name, $string = '') {
+  // If the request has a '/' in the search text, then the menu system will have
+  // split it into multiple arguments, recover the intended $string.
+  $args = func_get_args();
+  // Shift off the $entity_type argument.
+  array_shift($args);
+  // Shift off the $field_name argument.
+  array_shift($args);
+  $string = implode('/', $args);
+
   $field = field_info_field($field_name);
 
   $matches = array();
