@@ -613,27 +613,25 @@ function blockreference_options_list($field) {
 function blockreference_content_migrate_instance_alter(&$instance_value) {
   // The module name for the instance was corrected
   // by the change in blockreference_content_migrate_field_alter().
-  switch ($instance_value['module']) {
-    case 'blockreference':
-      // The formatter names changed, all are prefixed
-      // with 'blockreference_'.
-      foreach ($instance_value['display'] as $context => $settings) {
-        $instance_value['display'][$context]['type'] = 'blockreference_' . $settings['type'];
-      }
-      switch ($instance_value['widget']['type']) {
-        case 'blockreference_autocomplete':
-          $instance_value['widget']['type'] = 'blockreference_autocomplete';
-          $instance_value['widget']['module'] = 'blockreference';
-          break;
-        case 'blockreference_select':
-          $instance_value['widget']['type'] = 'options_select';
-          $instance_value['widget']['module'] = 'options';
-          break;
-        case 'blockreference_buttons':
-          $instance_value['widget']['type'] = 'options_buttons';
-          $instance_value['widget']['module'] = 'options';
-      }
-      break;
+  if (isset($instance_value['module']) && $instance_value['module'] == 'blockreference') {
+    // The formatter names changed, all are prefixed
+    // with 'blockreference_'.
+    foreach ($instance_value['display'] as $context => $settings) {
+      $instance_value['display'][$context]['type'] = 'blockreference_' . $settings['type'];
+    }
+    switch ($instance_value['widget']['type']) {
+      case 'blockreference_autocomplete':
+        $instance_value['widget']['type'] = 'blockreference_autocomplete';
+        $instance_value['widget']['module'] = 'blockreference';
+        break;
+      case 'blockreference_select':
+        $instance_value['widget']['type'] = 'options_select';
+        $instance_value['widget']['module'] = 'options';
+        break;
+      case 'blockreference_buttons':
+        $instance_value['widget']['type'] = 'options_buttons';
+        $instance_value['widget']['module'] = 'options';
+    }
   }
 }
 
