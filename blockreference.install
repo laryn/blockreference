@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * @file
+ * Block reference install file.
+ */
+
+ /**
+  * Implements hook_requirements().
+  */
+ function blockreference_requirements($phase) {
+  $requirements = array();
+  // Ensure translations don't break at install time
+  $t = get_t();
+  $drupal_version = '7.14';
+
+  if (version_compare(VERSION, $drupal_version) < 0) {
+    $requirements['drupal'] = array(
+      'title' => 'Drupal',
+      'value' => VERSION,
+      'description' => $t(
+        'Your Drupal installation is too old. Block reference requires at least Drupal %version.',
+        array('%version' => $drupal_version)
+      ),
+      'severity' => REQUIREMENT_ERROR,
+    );
+  }
+
+  return $requirements;
+}

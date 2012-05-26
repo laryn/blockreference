@@ -10,10 +10,10 @@
  */
 function blockreference_menu() {
   $items = array();
-  $items['blockreference/autocomplete/%/%'] = array(
+  $items['blockreference/autocomplete/%/%/%'] = array(
     'title' => 'blockreference autocomplete',
     'page callback' => 'blockreference_autocomplete',
-    'page arguments' => array(2, 3),
+    'page arguments' => array(2, 3, 4),
     'access callback' => 'blockreference_autocomplete_access',
     'access arguments' => array(2, 3),
     'type' => MENU_CALLBACK,
@@ -52,7 +52,13 @@ function blockreference_field_info() {
     'blockreference' => array(
       'label'             => t('Block reference'),
       'description'       => t('This field stores the ID of a related block as an integer value.'),
-      'settings'          => array('referenceable_regions' => array()),
+      'settings'          => array(
+        'referenceable_regions' => array(),
+        'referenceable_modules' => array(),
+        'referenceable_operator' => 'AND',
+        'respect_visibility' => 0,
+        'referenceable_theme' => 'not_admin',
+      ),
       'default_widget'    => 'options_select',
       'default_formatter' => 'blockreference_default',
     ),
@@ -107,56 +113,83 @@ function blockreference_get_block_modules() {
 }
 
 /**
+ * Field referenceable themes.
+ */
+function blockreference_field_referenceable_themes($field) {
+  switch ($field['settings']['referenceable_theme']) {
+     case 'default':
+        return array(variable_get('theme_default', 'bartik'));
+     case 'all';
+        $themes = list_themes();
+        return array_keys($themes);
+     case 'not_admin';
+        $themes = list_themes();
+        unset($themes[variable_get('admin_theme', 'seven')]);
+        return array_keys($themes);
+  }
+}
+
+/**
  * Implements hook_field_settings_form().
  */
 function blockreference_field_settings_form($field, $instance, $has_data) {
   $settings = $field['settings'];
 
   $form = array();
+
+  $regions = array('' => t('Disabled'));
+  $referenceable_themes = blockreference_field_referenceable_themes($field);
+  foreach ($referenceable_themes as $referenceable_theme) {
+    $regions = $regions + system_region_list($referenceable_theme);
+  }
+
   $form['referenceable_regions'] = array(
     '#type'          => 'checkboxes',
     '#title'         => t('Regions containing blocks that can be referenced'),
     '#multiple'      => TRUE,
-    '#default_value' => isset($settings['referenceable_regions'])
-      ? $settings['referenceable_regions']
-      : array(),
-    '#options'       => system_region_list(variable_get('theme_default', 'bartik')) + array('' => t('Disabled')),
-    //'#disabled'      => $has_data,  - This is just annoying.
+    '#default_value' => $settings['referenceable_regions'],
+    '#options'       => $regions,
     '#description' => t('If no regions are selected, blocks from all regions will be available.'),
   );
   $form['referenceable_modules'] = array(
     '#type'          => 'checkboxes',
     '#title'         => t('Modules defining blocks that can be referenced'),
     '#multiple' => TRUE,
-    '#default_value' => isset($settings['referenceable_modules'])
-      ? $settings['referenceable_modules']
-      : array(),
+    '#default_value' => $settings['referenceable_modules'],
     '#options'       => blockreference_get_block_modules(),
-    //'#disabled'      => $has_data,  - This is just annoying.
     '#description' => t('If no modules are selected, blocks from all modules will be available.'),
   );
   $form['referenceable_operator'] = array(
     '#type'          => 'radios',
     '#title'         => t('Operator to use if referenceable regions and referenceable modules are selected.'),
-    '#default_value' => isset($settings['referenceable_operator'])
-      ? $settings['referenceable_operator']
-      : 'AND',
+    '#default_value' => $settings['referenceable_operator'],
     '#options'       => array(
-       'AND' => '<strong>AND</strong> - ' . t('Block must be both contained in a referenceable region and defined by a referenceable module.'), 
+       'AND' => '<strong>AND</strong> - ' . t('Block must be both contained in a referenceable region and defined by a referenceable module.'),
        'OR'  => '<strong>OR</strong> - ' . t('Block must be either contained in a referenceable region or defined by a referenceable module.'),
     ),
-    //'#disabled'      => $has_data,  - This is just annoying.
     '#description' => t('If regions and modules are selected, choose operator to use when retrieving blocks list.'),
   );
   $form['respect_visibility'] = array(
     '#type'          => 'checkbox',
     '#title'         => t('Respect block visibility settings'),
-    '#default_value' => isset($settings['respect_visibility'])
-      ? $settings['respect_visibility']
-      : 0,
+    '#default_value' => $settings['respect_visibility'],
     '#description' => t('Allows the block module to remove the block if it is restricted by visibility settings.'),
-    //'#disabled'      => $has_data,  - This is just annoying.
   );
+
+  $themes = list_themes();
+  $current_theme = $themes[variable_get('theme_default', 'bartik')]->info['name'];
+  $admin_theme = $themes[variable_get('admin_theme', 'seven')]->info['name'];
+  $form['referenceable_theme'] = array(
+    '#type'          => 'radios',
+    '#title'         => t('Themes that can provide blocks for selection.'),
+    '#default_value' => $settings['referenceable_theme'],
+    '#options'       => array(
+       'default' => t('Default theme (%theme) only.', array('%theme' => $current_theme)),
+       'all'  => t('All themes.'),
+       'not_admin'  => t('All themes except admin theme (%theme).', array('%theme' => $admin_theme)),
+    ),
+  );
+
   return $form;
 }
 
@@ -187,7 +220,7 @@ function blockreference_field_validate($entity_type, $entity, $field, $instance,
   }
   // Prevent performance hog if there are no ids to check.
   if ($ids) {
-    $refs = _blockreference_potential_references($field, TRUE);
+    $refs = _blockreference_potential_references($field, $ids, TRUE);
     foreach ($items as $delta => $item) {
       if (is_array($item)) {
         if (!empty($item['bid']) && !isset($refs[$item['bid']])) {
@@ -324,10 +357,11 @@ function blockreference_field_widget_settings_form($field, $instance) {
 function blockreference_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   switch ($instance['widget']['type']) {
     case 'blockreference_autocomplete':
+      $current_bid = isset($items[$delta]['bid']) ? $items[$delta]['bid'] : NULL;
       $element += array(
         '#type' => 'textfield',
-        '#default_value' => isset($items[$delta]['bid']) ? $items[$delta]['bid'] : NULL,
-        '#autocomplete_path' => $instance['widget']['settings']['autocomplete_path'] . '/' . $instance['entity_type'] . '/' . $field['field_name'],
+        '#default_value' => $current_bid,
+        '#autocomplete_path' => $instance['widget']['settings']['autocomplete_path'] . '/' . $instance['entity_type'] . '/' . $field['field_name'] . '/' . $current_bid,
         '#size' => $instance['widget']['settings']['size'],
         '#element_validate' => array('blockreference_autocomplete_validate'),
         '#value_callback' => 'blockreference_autocomplete_value',
@@ -374,6 +408,8 @@ function blockreference_autocomplete_validate($element, &$form_state, $form) {
   $field = $form_state['field'][$element['#field_name']][$element['#language']]['field'];
   $instance = $form_state['field'][$element['#field_name']][$element['#language']]['instance'];
 
+  $current_bid = $element['#default_value'];
+
   $value = $element['#value'];
   $bid = NULL;
 
@@ -398,7 +434,7 @@ function blockreference_autocomplete_validate($element, &$form_state, $form) {
     else {
       // No explicit bid (the submitted value was not populated by autocomplete
       // selection). Get the bid of a referencable block from the entered title.
-      $bids = _blockreference_potential_references($field, FALSE, $value, TRUE);
+      $bids = _blockreference_potential_references($field, array($current_bid), FALSE, $value, TRUE);
       if ($reference) {
         // @todo The best thing would be to present the user with an
         // additional form, allowing the user to choose between valid
@@ -430,6 +466,8 @@ function blockreference_field_widget_error($element, $error, $form, &$form_state
  *
  * @param $field
  *  Array containing field data.
+ * @param $current_bids
+ *  Array of current bids.
  * @param $return_full_blocks
  *  Whether to return full blocks.
  * @param $string
@@ -440,7 +478,7 @@ function blockreference_field_widget_error($element, $error, $form, &$form_state
  * @return
  *  An array of whatever is needed.
  */
-function _blockreference_potential_references($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
+function _blockreference_potential_references($field, $current_bids = array(), $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   $results = &drupal_static(__FUNCTION__, array());
 
   // Create unique id for static cache.
@@ -449,8 +487,8 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
     . $string . ':'
     . ($exact_string ? 1 : 0);
   if (!isset($results[$cid])) {
-    $references = _blockreference_potential_references_standard($field, $return_full_blocks, $string, $exact_string);
-    drupal_alter('blockreference_potential_references', $references, $field, $return_full_blocks, $string, $exact_string);
+    $references = _blockreference_potential_references_standard($field, $current_bids, $return_full_blocks, $string, $exact_string);
+    drupal_alter('blockreference_potential_references', $references, $field, $current_bids, $return_full_blocks, $string, $exact_string);
 
     // Store the results.
     $results[$cid] = !empty($references) ? $references : array();
@@ -465,6 +503,8 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
  *
  * @param $field
  *  Array containing field data.
+ * @param $current_bids
+ *  Array of current bids.
  * @param $return_full_blocks
  *  Whether to return full blocks.
  * @param $string
@@ -475,7 +515,7 @@ function _blockreference_potential_references($field, $return_full_blocks = FALS
  * @return
  *  An array of whatever is needed.
  */
-function _blockreference_potential_references_standard($field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
+function _blockreference_potential_references_standard($field, $current_bids = array(), $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   static $block_info = array();
   $related_regions = array();
   $related_modules = array();
@@ -517,11 +557,13 @@ function _blockreference_potential_references_standard($field, $return_full_bloc
   $related_operator = !empty($settings['referenceable_operator']) ? $settings['referenceable_operator'] : 'AND';
   $related_clause = !empty($related_clauses) ? ' AND (('. implode(') ' . $related_operator . ' (', $related_clauses) .'))' : '';
 
+  $args[':themes'] = blockreference_field_referenceable_themes($field);
+
   // Assemble the query.
   $result = db_query(
     'SELECT bid, module, delta, title, region ' .
     'FROM {block} ' .
-    "WHERE theme = '" . variable_get('theme_default', 'bartik') . "' " .
+    "WHERE theme IN (:themes) " .
     $related_clause . ' ' .
     'ORDER BY region, weight',
     $args
@@ -575,7 +617,7 @@ function blockreference_autocomplete_access($entity_type, $field_name) {
 /**
  * Menu callback for the autocomplete results.
  */
-function blockreference_autocomplete($entity_type, $field_name, $string = '') {
+function blockreference_autocomplete($entity_type, $field_name, $current_bid, $string = '') {
   // If the request has a '/' in the search text, then the menu system will have
   // split it into multiple arguments, recover the intended $string.
   $args = func_get_args();
@@ -583,12 +625,14 @@ function blockreference_autocomplete($entity_type, $field_name, $string = '') {
   array_shift($args);
   // Shift off the $field_name argument.
   array_shift($args);
+  // Shift off the $current_bid argument.
+  array_shift($args);
   $string = implode('/', $args);
 
   $field = field_info_field($field_name);
 
   $matches = array();
-  $references = _blockreference_potential_references($field, TRUE, $string);
+  $references = _blockreference_potential_references($field, array($current_bid), TRUE, $string, $current_bid);
   foreach ($references as $rowbid => $rowname) {
     $matches[_blockreference_item($field, $rowname) . ' [bid:' . $rowbid . ']'] = _blockreference_item($field, $rowname);
   }
@@ -599,8 +643,16 @@ function blockreference_autocomplete($entity_type, $field_name, $string = '') {
 /**
  * Implements hook_options_list().
  */
-function blockreference_options_list($field) {
-  return _blockreference_potential_references($field);
+function blockreference_options_list($field, $instance, $entity_type, $entity) {
+  $current_bids = array();
+  if (!empty($entity->{$field['field_name']})) {
+    foreach($entity->{$field['field_name']} as $language) {
+      foreach($language as $delta) {
+        $current_bids[] = $delta;
+      }
+    }
+  }
+  return _blockreference_potential_references($field, $current_bids);
 }
 
 /**
@@ -787,11 +839,13 @@ function blockreference_select_sort_process($element, $form_state, $form) {
   $field = $form_state['field'][$field_name];
   $instance = $field[$language]['instance'];
 
+  $current_bid = isset($element['#value'][$element['#columns'][0]]) ? $element['#value'][$element['#columns'][0]] : '';
+
   $element[$element['#columns'][0]] = array(
     '#type' => 'select',
-    '#options' => blockreference_list_values($field, $language),
+    '#options' => blockreference_list_values($field, $language, $current_bid),
     '#multiple' => 0,
-    '#default_value' => isset($element['#value'][$element['#columns'][0]]) ? $element['#value'][$element['#columns'][0]] : '',
+    '#default_value' => $current_bid,
     '#delta' => $element['#delta'],
     '#columns' => $element['#columns'],
     '#title' => $instance['label'],
@@ -805,9 +859,9 @@ function blockreference_select_sort_process($element, $form_state, $form) {
 /**
  * Build the select options for a blockreference_select_sort element.
  */
-function blockreference_list_values($field, $language) {
+function blockreference_list_values($field, $language, $current_bid) {
   $instance = $field[$language]['instance'];
-  $options = _blockreference_potential_references($field[$language]['field'], TRUE);
+  $options = _blockreference_potential_references($field[$language]['field'], array($current_bid), TRUE);
 
   foreach ($options as $key => $value) {
     $options[$key] = _blockreference_item($field, $value);

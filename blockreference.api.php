@@ -19,6 +19,6 @@
  * @param $exact_string
  *  Strictly match string like for validation.
  */
-function hook_blockreference_potential_references_alter(&$references, $field, $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
+function hook_blockreference_potential_references_alter(&$references, $field, $current_bids = array(), $return_full_blocks = FALSE, $string = '', $exact_string = FALSE) {
   // no example code
 }
