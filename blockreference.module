@@ -311,7 +311,7 @@ function blockreference_field_widget_info() {
       ),
     ),
     'blockreference_select_sort' => array(
-      'label' => t('Select list (with drag-and-drop sort)'),
+      'label' => t('Select list (with drag-and-drop sort) DEPRECATED'),
       'description' => '<b>' . t('Deprecated in favor of <a href="!field_collection">Field collection</a>', array('!field_collection' => 'http://www.drupal.org/project/field_collection')) . '</b>',
       'field types' => array('blockreference'),
       'behaviors' => array(
