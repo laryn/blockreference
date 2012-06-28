@@ -886,3 +886,19 @@ function _blockreference_item($field, $item, $html = FALSE) {
   $output = $html ? check_plain($output) : $output;
   return $output;
 }
+
+/**
+ * Implements hook_node_view().
+ *
+ * Pre-render blockreference fields attached to nodes to ensure forms are rendered early enough.
+ */
+function blockreference_node_view($node, $view_mode) {
+  foreach ($node->content as $field_name => $field){
+    if (!empty($field) && $field['#field_type'] == 'blockreference') {
+      $node->content[$field_name] = array(
+        '#markup' => render($field),
+        '#weight' => $field['#weight'],
+      );
+    }
+  }
+}
