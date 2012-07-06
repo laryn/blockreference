@@ -57,7 +57,7 @@ function blockreference_field_info() {
         'referenceable_modules' => array(),
         'referenceable_operator' => 'AND',
         'respect_visibility' => 0,
-        'referenceable_theme' => 'not_admin',
+        'referenceable_theme' => 'default',
       ),
       'default_widget'    => 'options_select',
       'default_formatter' => 'blockreference_default',
@@ -561,7 +561,7 @@ function _blockreference_potential_references_standard($field, $current_bids = a
 
   // Assemble the query.
   $result = db_query(
-    'SELECT bid, module, delta, title, region ' .
+    'SELECT bid, module, delta, title, region, theme ' .
     'FROM {block} ' .
     "WHERE theme IN (:themes) " .
     $related_clause . ' ' .
@@ -572,6 +572,10 @@ function _blockreference_potential_references_standard($field, $current_bids = a
   // Execute the query, test each row, and return the blocks or block info.
   $rows = array();
   foreach ($result as $block) {
+    if (count($args[':themes']) <= 1) {
+      // If there were not multiple themes, don't track the theme.
+      unset($block->theme);
+    }
     if (!isset($block_info[$block->module])) {
       $block_info[$block->module] = module_invoke($block->module, 'block_info');
     }
@@ -721,7 +725,14 @@ function blockreference_formatter_get_block($element) {
  * Theme function for simple display of a block item.
  */
 function theme_blockreference_item_simple($variables) {
-  return $variables['item']->info;
+  $output = $variables['item']->info;
+
+  if (!empty($variables['item']->theme)) {
+    $themes = list_themes();
+    $output .= ' [' . $themes[{$variables['item']->theme}]->info['name'] . ']';
+  }
+
+  return $output;
 }
 
 /**
