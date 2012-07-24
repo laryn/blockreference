@@ -729,7 +729,8 @@ function theme_blockreference_item_simple($variables) {
 
   if (!empty($variables['item']->theme)) {
     $themes = list_themes();
-    $output .= ' [' . $themes[{$variables['item']->theme}]->info['name'] . ']';
+    $theme_key = $variables['item']->theme;
+    $output .= ' [' . $themes[$theme_key]->info['name'] . ']';
   }
 
   return $output;
