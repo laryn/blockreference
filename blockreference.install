@@ -10,6 +10,7 @@
   */
  function blockreference_requirements($phase) {
   module_load_include('inc', 'field', 'field.info');
+  module_load_include('inc', 'field', 'field.crud');
 
   $requirements = array();
   // Ensure translations don't break at install time
