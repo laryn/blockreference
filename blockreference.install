@@ -9,6 +9,8 @@
   * Implements hook_requirements().
   */
  function blockreference_requirements($phase) {
+  module_load_include('inc', 'field', 'field.info');
+
   $requirements = array();
   // Ensure translations don't break at install time
   $t = get_t();
