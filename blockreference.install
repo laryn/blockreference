@@ -9,9 +9,6 @@
   * Implements hook_requirements().
   */
  function blockreference_requirements($phase) {
-  module_load_include('inc', 'field', 'field.info');
-  module_load_include('inc', 'field', 'field.crud');
-
   $requirements = array();
   // Ensure translations don't break at install time
   $t = get_t();
@@ -29,28 +26,33 @@
     );
   }
 
-  $has_select_sort = FALSE;
-  $instances = field_info_instances();
-  foreach ($instances as $entity_type) {
-    foreach ($entity_type as $bundle) {
-      foreach ($bundle as $instance) {
-        if ($instance['widget']['type'] == 'blockreference_select_sort') {
-          $has_select_sort = TRUE;
-          break 3;
+  if ($phase == 'runtime') {
+    module_load_include('inc', 'field', 'field.info');
+    module_load_include('inc', 'field', 'field.crud');
+
+    $has_select_sort = FALSE;
+    $instances = field_info_instances();
+    foreach ($instances as $entity_type) {
+      foreach ($entity_type as $bundle) {
+        foreach ($bundle as $instance) {
+          if ($instance['widget']['type'] == 'blockreference_select_sort') {
+            $has_select_sort = TRUE;
+            break 3;
+          }
         }
       }
     }
-  }
-  if ($has_select_sort) {
-    $requirements['blockreference'] = array(
-      'title' => $t('Block reference'),
-      'description' => $t(
-        'Block reference select lists (with drag-and-drop sort) are deprecated.  Please use the <a href="!field_collection">Field collection</a> module.',
-        array('!field_collection' => 'http://www.drupal.org/project/field_collection')
-      ),
-      'severity' => REQUIREMENT_WARNING,
-      'value' => '',
-    );
+    if ($has_select_sort) {
+      $requirements['blockreference'] = array(
+        'title' => $t('Block reference'),
+        'description' => $t(
+          'Block reference select lists (with drag-and-drop sort) are deprecated.  Please use the <a href="!field_collection">Field collection</a> module.',
+          array('!field_collection' => 'http://www.drupal.org/project/field_collection')
+        ),
+        'severity' => REQUIREMENT_WARNING,
+        'value' => '',
+      );
+    }
   }
 
   return $requirements;
