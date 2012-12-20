@@ -905,12 +905,12 @@ function _blockreference_item($field, $item, $html = FALSE) {
  * Pre-render blockreference fields attached to nodes to ensure forms are rendered early enough.
  */
 function blockreference_node_view($node, $view_mode) {
-  foreach ($node->content as $field_name => $field){
-    if (!empty($field) && $field['#field_type'] == 'blockreference') {
-      $node->content[$field_name] = array(
-        '#markup' => render($field),
-        '#weight' => $field['#weight'],
-      );
+  foreach (element_children($node->content) as $field_name){
+    $field = $node->content[$field_name];
+    if (isset($field['#field_type']) && $field['#field_type'] == 'blockreference') {
+      $node->content[$field_name]['#type'] = 'markup';
+      $node->content[$field_name]['#markup'] = render($field);
+      $node->content[$field_name]['#weight'] = $field['#weight'];
     }
   }
 }
