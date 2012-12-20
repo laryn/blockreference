@@ -2,6 +2,7 @@ name = Block reference
 description = Defines a field type for referencing a block from a node.
 package = Fields
 core = 7.x
+
 dependencies[] = field
 dependencies[] = options
 dependencies[] = block
