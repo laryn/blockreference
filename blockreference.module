@@ -312,7 +312,7 @@ function blockreference_field_widget_info() {
     ),
     'blockreference_select_sort' => array(
       'label' => t('Select list (with drag-and-drop sort) DEPRECATED'),
-      'description' => '<b>' . t('Deprecated in favor of <a href="!field_collection">Field collection</a>', array('!field_collection' => 'http://www.drupal.org/project/field_collection')) . '</b>',
+      'description' => '<b>' . t('Deprecated in favor of <a href="http://drupal.org/multiple_selects">Multiple Selects</a>') . '</b>',
       'field types' => array('blockreference'),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_DEFAULT,
@@ -328,6 +328,10 @@ function blockreference_field_widget_info() {
 function blockreference_field_widget_info_alter(&$info) {
   $info['options_select']['field types'][] = 'blockreference';
   $info['options_buttons']['field types'][] = 'blockreference';
+
+  if (module_exists('multiple_selects')) {
+    $info['multiple_selects']['field types'][] = 'blockreference';
+  }
 }
 
 /**
