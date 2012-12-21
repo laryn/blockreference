@@ -608,7 +608,9 @@ function _blockreference_potential_references_standard($field, $current_bids = a
     }
   }
 
-  natcasesort($rows);
+  if (!$return_full_blocks) {
+    natcasesort($rows);
+  }
   return $rows;
 }
 
