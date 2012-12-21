@@ -568,8 +568,7 @@ function _blockreference_potential_references_standard($field, $current_bids = a
     'SELECT bid, module, delta, title, region, theme ' .
     'FROM {block} ' .
     "WHERE theme IN (:themes) " .
-    $related_clause . ' ' .
-    'ORDER BY region, weight',
+    $related_clause,
     $args
   );
 
@@ -608,6 +607,8 @@ function _blockreference_potential_references_standard($field, $current_bids = a
       }
     }
   }
+
+  natcasesort($rows);
   return $rows;
 }
 
