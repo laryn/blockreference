@@ -409,8 +409,8 @@ function blockreference_autocomplete_value($element, $input = FALSE, $form_state
  * Validation callback for a blockreference autocomplete element.
  */
 function blockreference_autocomplete_validate($element, &$form_state, $form) {
-  $field = $form_state['field'][$element['#field_name']][$element['#language']]['field'];
-  $instance = $form_state['field'][$element['#field_name']][$element['#language']]['instance'];
+  $field = field_info_field($element['#field_name']);
+  $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
 
   $current_bid = $element['#default_value'];
 
@@ -439,7 +439,7 @@ function blockreference_autocomplete_validate($element, &$form_state, $form) {
       // No explicit bid (the submitted value was not populated by autocomplete
       // selection). Get the bid of a referencable block from the entered title.
       $bids = _blockreference_potential_references($field, array($current_bid), FALSE, $value, TRUE);
-      if ($reference) {
+      if ($bids) {
         // @todo The best thing would be to present the user with an
         // additional form, allowing the user to choose between valid
         // candidates with the same title. ATM, we pick the first
