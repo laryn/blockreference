@@ -50,16 +50,16 @@ function blockreference_theme() {
 function blockreference_field_info() {
   return array(
     'blockreference' => array(
-      'label'             => t('Block reference'),
-      'description'       => t('This field stores the ID of a related block as an integer value.'),
-      'settings'          => array(
+      'label' => t('Block reference'),
+      'description' => t('This field stores the ID of a related block as an integer value.'),
+      'settings' => array(
         'referenceable_regions' => array(),
         'referenceable_modules' => array(),
         'referenceable_operator' => 'AND',
         'respect_visibility' => 0,
         'referenceable_theme' => 'default',
       ),
-      'default_widget'    => 'options_select',
+      'default_widget' => 'options_select',
       'default_formatter' => 'blockreference_default',
     ),
   );
@@ -144,34 +144,34 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
   }
 
   $form['referenceable_regions'] = array(
-    '#type'          => 'checkboxes',
-    '#title'         => t('Regions containing blocks that can be referenced'),
-    '#multiple'      => TRUE,
+    '#type' => 'checkboxes',
+    '#title' => t('Regions containing blocks that can be referenced'),
+    '#multiple' => TRUE,
     '#default_value' => $settings['referenceable_regions'],
-    '#options'       => $regions,
+    '#options' => $regions,
     '#description' => t('If no regions are selected, blocks from all regions will be available.'),
   );
   $form['referenceable_modules'] = array(
-    '#type'          => 'checkboxes',
-    '#title'         => t('Modules defining blocks that can be referenced'),
+    '#type' => 'checkboxes',
+    '#title' => t('Modules defining blocks that can be referenced'),
     '#multiple' => TRUE,
     '#default_value' => $settings['referenceable_modules'],
-    '#options'       => blockreference_get_block_modules(),
+    '#options' => blockreference_get_block_modules(),
     '#description' => t('If no modules are selected, blocks from all modules will be available.'),
   );
   $form['referenceable_operator'] = array(
-    '#type'          => 'radios',
-    '#title'         => t('Operator to use if referenceable regions and referenceable modules are selected.'),
+    '#type' => 'radios',
+    '#title' => t('Operator to use if referenceable regions and referenceable modules are selected.'),
     '#default_value' => $settings['referenceable_operator'],
-    '#options'       => array(
+    '#options' => array(
        'AND' => '<strong>AND</strong> - ' . t('Block must be both contained in a referenceable region and defined by a referenceable module.'),
-       'OR'  => '<strong>OR</strong> - ' . t('Block must be either contained in a referenceable region or defined by a referenceable module.'),
+       'OR' => '<strong>OR</strong> - ' . t('Block must be either contained in a referenceable region or defined by a referenceable module.'),
     ),
     '#description' => t('If regions and modules are selected, choose operator to use when retrieving blocks list.'),
   );
   $form['respect_visibility'] = array(
-    '#type'          => 'checkbox',
-    '#title'         => t('Respect block visibility settings'),
+    '#type' => 'checkbox',
+    '#title' => t('Respect block visibility settings'),
     '#default_value' => $settings['respect_visibility'],
     '#description' => t('Allows the block module to remove the block if it is restricted by visibility settings.'),
   );
@@ -180,13 +180,13 @@ function blockreference_field_settings_form($field, $instance, $has_data) {
   $current_theme = $themes[variable_get('theme_default', 'bartik')]->info['name'];
   $admin_theme = $themes[variable_get('admin_theme', 'seven')]->info['name'];
   $form['referenceable_theme'] = array(
-    '#type'          => 'radios',
-    '#title'         => t('Themes that can provide blocks for selection.'),
+    '#type' => 'radios',
+    '#title' => t('Themes that can provide blocks for selection.'),
     '#default_value' => $settings['referenceable_theme'],
-    '#options'       => array(
+    '#options' => array(
        'default' => t('Default theme (%theme) only.', array('%theme' => $current_theme)),
-       'all'  => t('All themes.'),
-       'not_admin'  => t('All themes except admin theme (%theme).', array('%theme' => $admin_theme)),
+       'all' => t('All themes.'),
+       'not_admin' => t('All themes except admin theme (%theme).', array('%theme' => $admin_theme)),
     ),
   );
 
@@ -706,7 +706,7 @@ function blockreference_content_migrate_instance_alter(&$instance_value) {
  */
 function blockreference_formatter_get_block($element) {
   if (!empty($element['item']['bid']) && is_numeric($element['item']['bid'])) {
-    $bid = &$element['item']['bid'];
+    $bid = $element['item']['bid'];
 
     $query = db_select('block', 'b');
     $result = $query
@@ -715,18 +715,23 @@ function blockreference_formatter_get_block($element) {
       ->addTag('block_load')
       ->addTag('translatable')
       ->execute();
-
     $blocks = $result->fetchAllAssoc('bid');
 
-    if ($element['field']['settings']['respect_visibility']) {
-      // Allow modules to modify the block list.
-      drupal_alter('block_list', $blocks);
-    }
-
     if (isset($blocks[$bid])) {
-      return $blocks[$bid];
+      if ($element['field']['settings']['respect_visibility']) {
+        // Set status to 1 manually, so block.module actually evaluates visibility.
+        $blocks[$bid]->status = 1;
+
+        // Allow block.module and other modules to modify the block list.
+        drupal_alter('block_list', $blocks);
+      }
+
+      if (isset($blocks[$bid])) {
+        return $blocks[$bid];
+      }
     }
   }
+
   return FALSE;
 }
 
