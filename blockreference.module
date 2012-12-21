@@ -486,20 +486,22 @@ function _blockreference_potential_references($field, $current_bids = array(), $
   $results = &drupal_static(__FUNCTION__, array());
 
   // Create unique id for static cache.
-  $cid = $field['field_name'] . ':'
-    . ($return_full_blocks ? 1 : 0) . ':'
-    . $string . ':'
-    . ($exact_string ? 1 : 0);
+  $cid = $field['field_name'] . ':' . (int) $return_full_blocks . ':' . $string . ':' . (int) $exact_string;
   if (!isset($results[$cid])) {
     $references = _blockreference_potential_references_standard($field, $current_bids, $return_full_blocks, $string, $exact_string);
+
+    // Incorrect legacy alter.
     drupal_alter('blockreference_potential_references', $references, $field, $current_bids, $return_full_blocks, $string, $exact_string);
+
+    // Correct new alter.
+    $context = compact('field', 'current_bids', 'return_full_blocks', 'string', 'exact_string');
+    drupal_alter('blockreference_potential_references2', $references, $context);
 
     // Store the results.
     $results[$cid] = !empty($references) ? $references : array();
   }
 
   return $results[$cid];
-
 }
 
 /**
