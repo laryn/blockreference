@@ -610,9 +610,14 @@ function _blockreference_potential_references_standard($field, $current_bids = a
     }
   }
 
-  if (!$return_full_blocks) {
+  // Default sort.
+  if ($return_full_blocks) {
+    _blockreference_sort_blocks($rows);
+  }
+  else {
     natcasesort($rows);
   }
+
   return $rows;
 }
 
@@ -645,9 +650,9 @@ function blockreference_autocomplete($entity_type, $field_name, $current_bid, $s
   $field = field_info_field($field_name);
 
   $matches = array();
-  $references = _blockreference_potential_references($field, array($current_bid), TRUE, $string, $current_bid);
-  foreach ($references as $rowbid => $rowname) {
-    $matches[_blockreference_item($field, $rowname) . ' [bid:' . $rowbid . ']'] = _blockreference_item($field, $rowname);
+  $blocks = _blockreference_potential_references($field, array($current_bid), TRUE, $string);
+  foreach ($blocks as $bid => $block) {
+    $matches[_blockreference_item($field, $block) . ' [bid:' . $bid . ']'] = _blockreference_item($field, $block);
   }
 
   drupal_json_output($matches);
@@ -902,6 +907,20 @@ function blockreference_list_values($field, $language, $current_bid) {
     $options = array(0 => ' - ' . t('none') . ' - ') + $options;
   }
   return $options;
+}
+
+/**
+ * Helper to sort block objects.
+ */
+function _blockreference_sort_blocks(&$blocks) {
+  uasort($blocks, '_blockreference_block_sorter');
+}
+
+/**
+ * Helper to sort block titles.
+ */
+function _blockreference_block_sorter($block1, $block2) {
+  return strnatcasecmp($block1->info, $block2->info);
 }
 
 /**
