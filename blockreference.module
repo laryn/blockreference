@@ -940,10 +940,28 @@ function _blockreference_item($field, $item, $html = FALSE) {
 function blockreference_node_view($node, $view_mode) {
   foreach (element_children($node->content) as $field_name){
     $field = $node->content[$field_name];
+
+    // This is a blockreference field.
     if (isset($field['#field_type']) && $field['#field_type'] == 'blockreference') {
-      $node->content[$field_name]['#type'] = 'markup';
-      $node->content[$field_name]['#markup'] = render($field);
-      $node->content[$field_name]['#weight'] = $field['#weight'];
+      // Unset renderable field items.
+      foreach (element_children($field) as $n) {
+        unset($node->content[$field_name][$n]);
+      }
+
+      // Render.
+      $html = render($field);
+
+      // Add back to node content.
+      $keep_meta = array_flip(array(
+        '#weight',
+        '#title',
+        '#access',
+        '#label_display',
+        '#field_name',
+        '#entity_type',
+        '#bundle',
+      ));
+      $node->content[$field_name] = array('#markup' => $html) + array_intersect_key($field, $keep_meta);
     }
   }
 }
