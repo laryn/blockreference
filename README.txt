@@ -29,3 +29,14 @@ USAGE
 Block reference fields will now be available in the Field UI.
 For detailed instructions on using the Field UI see:
 http://drupal.org/documentation/modules/field-ui
+
+
+NOTES
+-----
+* Relationships are saved using the block's `bid`, not its delta +
+  module.
+* Block configuration visibility settings are respected since version
+  7.x-1.14. If a referenced block does not appear when viewing the node,
+  check the block's visibility settings on /admin/structure/block. Note
+  that visibility settings are evaluated regardless of whether the
+  block is assigned to a region.
