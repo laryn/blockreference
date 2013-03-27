@@ -763,8 +763,10 @@ function theme_blockreference_formatter_default($variables) {
   $output = '';
   $block = blockreference_formatter_get_block($element);
   if ($block) {
+    $bid = $block->module . '_' . $block->delta;
     $block_content = _block_render_blocks(array($block));
     $build = _block_get_renderable_array($block_content);
+    $build[$bid]['#blockreference_element'] = $element;
     $output = drupal_render($build);
   }
   return $output;
@@ -778,9 +780,11 @@ function theme_blockreference_formatter_without_title($variables) {
   $output = '';
   $block = blockreference_formatter_get_block($element);
   if ($block) {
+    $bid = $block->module . '_' . $block->delta;
     $block_content = _block_render_blocks(array($block));
     reset($block_content)->subject = '';
     $build = _block_get_renderable_array($block_content);
+    $build[$bid]['#blockreference_element'] = $element;
     $output = drupal_render($build);
   }
   return $output;

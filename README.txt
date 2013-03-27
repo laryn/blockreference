@@ -7,6 +7,8 @@ CONTENTS OF THIS FILE
   * Introduction
   * Installation
   * Usage
+  * Theming
+  * Notes
 
 
 INTRODUCTION
@@ -29,6 +31,20 @@ USAGE
 Block reference fields will now be available in the Field UI.
 For detailed instructions on using the Field UI see:
 http://drupal.org/documentation/modules/field-ui
+
+
+THEMEING
+--------
+To assist in themeing blocks that are displayed using the block reference
+module, the block reference element is available in the $variables array in
+template_preprocess_block().
+
+The element can be found at:
+
+    $variables['elements']['#blockreference_element']
+
+Note that the element will not be there for non-blockreference blocks so you
+should first check the existence of the element before using its contents.
 
 
 NOTES
