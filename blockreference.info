@@ -6,3 +6,6 @@ core = 7.x
 dependencies[] = field
 dependencies[] = options
 dependencies[] = block
+
+; Migrate handler.
+files[] = MigrateBlockReferenceFieldHandler.inc
