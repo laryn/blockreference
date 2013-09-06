@@ -829,7 +829,8 @@ function blockreference_field_views_data($field) {
   // views/modules/field.views.inc, which is where that function is defined.
   $data = field_views_field_default_views_data($field);
 
-  $storage = $field['storage']['details']['sql'];
+  $key = key($field['storage']['details']);
+  $storage = $field['storage']['details'][$key];
 
   foreach ($storage as $age => $table_data) {
     $table = key($table_data);
