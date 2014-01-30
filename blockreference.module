@@ -398,9 +398,23 @@ function blockreference_autocomplete_value($element, $input = FALSE, $form_state
       $result = db_query('SELECT module, delta FROM {block} WHERE bid = :bid', array(':bid' => $bid));
       $block = $result->fetchObject();
       $info = module_invoke($block->module, 'block_info');
-      $value = $info[$block->delta]['info'];
-      $value .= ' [bid:' . $bid . ']';
-      return $value;
+      if (isset($info[$block->delta])) {
+        $value = $info[$block->delta]['info'];
+        $value .= ' [bid:' . $bid . ']';
+        return $value;
+      }
+      else {
+        // If you want these missing blocks to fail silently, without warning, set this variable to 0.
+        if (variable_get('blockreference_warn_about_missing_blocks', 1)) {
+          drupal_set_message(t("Delta %delta (bid @bid) is unknown in the block list coming from module %module, but it's still referenced in field %field.", array(
+            '@bid' => $bid,
+            '%delta' => $block->delta,
+            '%module' => $block->module,
+            '%field' => $element['#field_name'],
+          )), 'warning');
+        }
+        return '';
+      }
     }
   }
 }
