@@ -8,7 +8,7 @@
 class MigrateBlockReferenceFieldHandler extends MigrateSimpleFieldHandler {
   public function __construct($options = array()) {
     parent::__construct(array(
-      'value_key' => 'bid',
+      'value_key' => 'moddelta',
       'skip_empty' => TRUE,
     ));
 
