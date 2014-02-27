@@ -127,9 +127,7 @@ function blockreference_field_widget_info_alter(&$info) {
  * Implements hook_field_instance_settings_form().
  */
 function blockreference_field_instance_settings_form($field, $instance) {
-  $form = array();
-
-  $form['referenceable_modules'] = array(
+  $form['blockreference_modules'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Modules defining blocks that can be referenced'),
     '#options' => _blockreference_get_block_modules(),
@@ -138,6 +136,25 @@ function blockreference_field_instance_settings_form($field, $instance) {
   );
 
   return $form;
+}
+
+/**
+ * Implements hook_field_widget_settings_form().
+ */
+function blockreference_field_widget_settings_form($field, $instance) {
+  if ($instance['widget']['type'] == 'blockreference_autocomplete') {
+    $form['blockreference_ac_match_method'] = array(
+      '#type' => 'radios',
+      '#title' => t('Autocomplete match method'),
+      '#options' => array(
+        'contains' => t('Contains string'),
+        'startswith' => t('Starts with string'),
+      ),
+      '#default_value' => _blockreference_get_ac_match_method_from_field($instance),
+    );
+
+    return $form;
+  }
 }
 
 /**

@@ -207,7 +207,7 @@ function theme_blockreference_formatter_title($variables) {
  * The referenecable blocks in field instance settings.
  */
 function _blockreference_get_block_modules_from_field($instance, $field = NULL) {
-  $modules = @$instance['settings']['referenceable_modules'];
+  $modules = @$instance['settings']['blockreference_modules'];
   if (!$modules) {
     $field or $field = field_info_field($instance['field_name']);
 
@@ -217,6 +217,14 @@ function _blockreference_get_block_modules_from_field($instance, $field = NULL) 
   $modules = drupal_map_assoc(array_keys(array_filter($modules)));
 
   return (array) $modules;
+}
+
+/**
+ * The autocomplete match method in field instance settings.
+ */
+function _blockreference_get_ac_match_method_from_field($instance, $field = NULL) {
+  $method = @$instance['widget']['settings']['blockreference_ac_match_method'];
+  return $method ?: 'contains';
 }
 
 /**
@@ -305,6 +313,9 @@ function _blockreference_find_blocks($instance, $search_string = '', $context = 
   }
 
   $blocks = $all_block_infos[$iid];
+  $context['instance'] = $instance;
+
+  drupal_alter('blockreference_blocks_pre', $blocks, $context);
 
   // Filter by search string.
   if ($search_string) {
@@ -321,9 +332,7 @@ function _blockreference_find_blocks($instance, $search_string = '', $context = 
     return strnatcasecmp($a->info, $b->info);
   });
 
-  // Alter. $context might also include: 'type', 'entity', 'entity_type', more?
-  $context['instance'] = $instance;
-  drupal_alter('blockreference_blocks', $blocks, $context);
+  drupal_alter('blockreference_blocks_post', $blocks, $context);
 
   return $blocks;
 }
