@@ -470,3 +470,29 @@ function blockreference_block_usage($module, $delta) {
 
   return $matches;
 }
+
+/**
+ * Implements hook_entityreference_link_config().
+ */
+function blockreference_entityreference_link_config() {
+  return array(
+    'blockreference' => array(
+      'value_column' => 'moddelta',
+      'links_callback' => '_blockreference_entityreference_link_links',
+    ),
+  );
+}
+
+/**
+ * Helper to make simple links from blocks for entityreference_link.
+ */
+function _blockreference_entityreference_link_links($entity_type, $moddeltas, $options, $context, $element) {
+  $links = array();
+  foreach ($moddeltas as $moddelta) {
+    list($module, $delta) = explode(':', $moddelta);
+    $block = _blockreference_block($module, $delta);
+    $links[] = l($block->info, 'admin/structure/block/manage/' . $module . '/' . $delta . '/configure', $options);
+  }
+
+  return $links;
+}
