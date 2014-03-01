@@ -28,7 +28,7 @@ function blockreference_update_7200() {
 
   $col_spec = array(
     'type' => 'varchar',
-    'length' => 128, // 4x 32 should be enough
+    'length' => 129, // 4 x 32 + 1 should be enough
     'not null' => TRUE,
     'default' => '',
   );
@@ -42,9 +42,9 @@ function blockreference_update_7200() {
 
     // Convert bids to moddeltas.
     db_query("
-      UPDATE {$table_name}
+      UPDATE {{$table_name}}
       SET
-        $column_moddelta = (SELECT CONCAT(module, ':', delta) FROM {block} WHERE bid = {$table_name}.$column_bid)
+        $column_moddelta = (SELECT CONCAT(module, ':', delta) FROM {block} WHERE bid = {{$table_name}}.$column_bid)
       WHERE
         $column_bid IN (SELECT bid FROM {block})
     ")->execute();
