@@ -161,10 +161,12 @@ function theme_blockreference_formatter_without_title($variables) {
   if ($block) {
     $bid = $block->module . '_' . $block->delta;
     $block_content = _block_render_blocks(array($block));
-    reset($block_content)->subject = '';
-    $build = _block_get_renderable_array($block_content);
-    $build[$bid]['#blockreference_element'] = $element;
-    return drupal_render($build);
+    if ($block_content) {
+      reset($block_content)->subject = '';
+      $build = _block_get_renderable_array($block_content);
+      $build[$bid]['#blockreference_element'] = $element;
+      return drupal_render($build);
+    }
   }
 
   return '';
@@ -491,7 +493,9 @@ function _blockreference_entityreference_link_links($entity_type, $moddeltas, $o
   foreach ($moddeltas as $moddelta) {
     list($module, $delta) = explode(':', $moddelta);
     $block = _blockreference_block($module, $delta);
-    $links[] = l($block->info, 'admin/structure/block/manage/' . $module . '/' . $delta . '/configure', $options);
+    if ($block) {
+      $links[] = l($block->info, 'admin/structure/block/manage/' . $module . '/' . $delta . '/configure', $options);
+    }
   }
 
   return $links;
