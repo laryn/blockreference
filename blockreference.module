@@ -24,9 +24,19 @@ function blockreference_menu() {
  * Menu access callback for the autocomplete path.
  */
 function blockreference_autocomplete_access($entity_type, $bundle, $field_name, $eid) {
-  $entity = entity_load($entity_type, array($eid));
-  $entity = reset($entity) ?: FALSE;
-  return user_access('access content') && $entity && entity_access('update', $entity_type, $entity);
+  if ($eid == 0) {
+    $entity_info = entity_get_info($entity_type);
+    $entity_dummy = entity_create($entity_type, array(
+      $entity_info['entity keys']['bundle'] => $bundle,
+    ));
+    $entity_access = entity_access('create', $entity_type, $entity_dummy);
+  }
+  else {
+    $entity = entity_load($entity_type, array($eid));
+    $entity = reset($entity) ?: FALSE;
+    $entity_access = entity_access('update', $entity_type, $entity);
+  }
+  return user_access('access content') && $entity_access;
 }
 
 /**
