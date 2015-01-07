@@ -68,7 +68,71 @@ function blockreference_field_formatter_info() {
       'description' => t('Display the info text of a block.'),
       'field types' => array('blockreference'),
     ),
+    'blockreference_config_link' => array(
+      'label' => t('Link to configuration'),
+      'description' => t('Link to configure the block'),
+      'field types' => array('blockreference'),
+      'settings' => array('label' => 'default', 'custom_label' => '', 'destination' => 1),
+    ),
   );
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function blockreference_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  if ($display['type'] == 'blockreference_config_link') {
+    $summary = array();
+    $summary[] = t('Label: @label', array('@label' => $settings['label']));
+    $summary[] = $settings['destination'] ? t('with <code>?destination</code>') : t('no <code>?destination</code>');
+    return implode(', ', $summary);
+  }
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function blockreference_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  if ($display['type'] == 'blockreference_config_link') {
+    // Views for some reason passes in the Views Field's entire existing config form. Wrong!
+    if (@$form_state['view']) {
+      $form = array();
+    }
+
+    $form['label'] = array(
+      '#type' => 'select',
+      '#title' => t('Label'),
+      '#options' => drupal_map_assoc(array('default', 'custom', 'info', 'config', 'rendered')),
+      '#default_value' => $settings['label'],
+      '#attributes' => array('class' => array('blockreference-label-type')),
+    );
+    $form['custom_label'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Custom label'),
+      '#default_value' => $settings['custom_label'],
+      '#description' => t('If empty, the default will be used: &quot;configure block&quot;'),
+      '#states' => array(
+        'visible' => array(
+          'select.blockreference-label-type' => array('value' => 'custom'),
+        ),
+      ),
+    );
+
+    $form['destination'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Remember location?'),
+      '#default_value' => $settings['destination'],
+      '#description' => t('If checked, will append a ?destination to the URL, to come back after saving.'),
+    );
+
+    return $form;
+  }
 }
 
 /**

@@ -14,4 +14,4 @@ dependencies[] = entity
 files[] = MigrateBlockReferenceFieldHandler.inc
 
 ; Tell Drupal this dev version is 2.0, for updates
-version = 7.x-2.0-beta3
+version = 7.x-2.0-DEV

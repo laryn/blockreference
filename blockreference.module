@@ -140,6 +140,9 @@ function blockreference_theme() {
     'blockreference_formatter_plain' => array(
       'variables' => array('element' => NULL),
     ),
+    'blockreference_formatter_config_link' => array(
+      'variables' => array('element' => NULL),
+    )
   );
 }
 
@@ -210,6 +213,49 @@ function theme_blockreference_formatter_title($variables) {
     if ($block_content) {
       return reset($block_content)->subject;
     }
+  }
+
+  return '';
+}
+
+/**
+ * Theme function for 'config_link' blockreference field formatter.
+ */
+function theme_blockreference_formatter_config_link($variables) {
+  $element = $variables['element'];
+  $item = $element['item'];
+  if (@$item['moddelta']) {
+    list($module, $delta) = explode(':', $item['moddelta']);
+    $settings = $element['display']['settings'];
+
+    $label = '';
+    switch ($settings['label']) {
+      case 'custom':
+        $label = t($settings['custom_label']);
+        break;
+
+      case 'info':
+        $label = theme_blockreference_formatter_plain($variables);
+        break;
+
+      case 'config':
+        $label = db_query('
+          SELECT title
+          FROM {block}
+          WHERE module = ? AND delta = ?
+        ', array($module, $delta))->fetchField();
+        break;
+
+      case 'rendered':
+        $label = theme_blockreference_formatter_title($variables);
+        break;
+    }
+
+    if (!$label) {
+      $label = t('configure block');
+    }
+
+    return l($label, 'admin/structure/block/manage/' . $module . '/' . $delta . '/configure');
   }
 
   return '';
