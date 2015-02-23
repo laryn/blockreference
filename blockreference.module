@@ -448,6 +448,10 @@ function _blockreference_formatter_get_block($element) {
  * Pre-render blockreference fields attached to entities to ensure forms are rendered early enough.
  */
 function blockreference_entity_view($entity, $entity_type, $view_mode, $langcode) {
+  if (empty($entity->content)) {
+    return;
+  }
+
   foreach (element_children($entity->content) as $field_name){
     $field = $entity->content[$field_name];
 
