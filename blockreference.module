@@ -1,6 +1,6 @@
 <?php
 
-define('BLOCKREFERENCE_AC_REGEX', '#\[([^:]+):([^:]+)\]$#');
+define('BLOCKREFERENCE_AC_REGEX', '#\[([\w\-]+):([\w\-]+)\]$#');
 
 require __DIR__ . '/blockreference.field.inc';
 
