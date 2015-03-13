@@ -433,7 +433,21 @@ function _blockreference_formatter_get_block($element) {
     list($module, $delta) = explode(':', $item['moddelta']);
     $block = _blockreference_block($module, $delta);
     if ($block) {
-      $block->title = db_query('SELECT title FROM {block} WHERE module = ? AND delta = ?', array($module, $delta))->fetchField();
+      $fields = array('title', 'bid');
+      if (module_exists('i18n_block')) {
+        $fields[] = 'i18n_mode';
+      }
+      $query = db_select('block')
+       ->fields('block', $fields)
+       ->condition('module', $module)
+       ->condition('delta',  $delta)
+       ->execute();
+      $result = $query->fetchObject();
+      if ($result) {
+        foreach ($fields as $field) {
+          $block->{$field} = $result->{$field};
+        }
+      }
       $block->region = 'none';
       return $block;
     }
