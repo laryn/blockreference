@@ -312,6 +312,10 @@ function _blockreference_get_block_modules() {
  * Helper to create an autocomplete string from a pretty block.
  */
 function _blockreference_block_string($block) {
+  if (!$block) {
+    return '';
+  }
+
   $moddelta = $block->module . ':' . $block->delta;
   $label = $block->info;
 
