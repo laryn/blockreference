@@ -47,27 +47,28 @@ function blockreference_field_is_empty($item, $field) {
  * Implements hook_field_formatter_info().
  */
 function blockreference_field_formatter_info() {
+  $base = array(
+    'field types' => array('blockreference'),
+    'settings' => array('show_empty_blocks' => FALSE),
+  );
+
   return array(
     'blockreference_default' => array(
       'label' => t('Default (title and content)'),
       'description' => t('Display the title and content of a block.'),
-      'field types' => array('blockreference'),
-    ),
+    ) + $base,
     'blockreference_without_title' => array(
       'label' => t('Content only'),
       'description' => t('Display the content of a block.  Do not display the title.'),
-      'field types' => array('blockreference'),
-    ),
+    ) + $base,
     'blockreference_title' => array(
       'label' => t('Title only'),
       'description' => t('Display the title of a block.  Do not display the content.'),
-      'field types' => array('blockreference'),
-    ),
+    ) + $base,
     'blockreference_plain' => array(
       'label' => t('Info'),
       'description' => t('Display the info text of a block.'),
-      'field types' => array('blockreference'),
-    ),
+    ) + $base,
     'blockreference_config_link' => array(
       'label' => t('Link to configuration'),
       'description' => t('Link to configure the block'),
@@ -84,12 +85,18 @@ function blockreference_field_formatter_settings_summary($field, $instance, $vie
   $display = $instance['display'][$view_mode];
   $settings = $display['settings'];
 
+  $summary = array();
+
   if ($display['type'] == 'blockreference_config_link') {
-    $summary = array();
     $summary[] = t('Label: @label', array('@label' => $settings['label']));
     $summary[] = $settings['destination'] ? t('with <code>?destination</code>') : t('no <code>?destination</code>');
-    return implode(', ', $summary);
   }
+
+  if (isset($settings['show_empty_blocks'])) {
+    $summary[] = $settings['show_empty_blocks'] ? t('Show empty blocks') : t('Hide empty blocks (by pre-rendering)');
+  }
+
+  return implode('<br>', $summary);
 }
 
 /**
@@ -99,12 +106,12 @@ function blockreference_field_formatter_settings_form($field, $instance, $view_m
   $display = $instance['display'][$view_mode];
   $settings = $display['settings'];
 
-  if ($display['type'] == 'blockreference_config_link') {
-    // Views for some reason passes in the Views Field's entire existing config form. Wrong!
-    if (@$form_state['view']) {
-      $form = array();
-    }
+  // Views for some reason passes in the Views Field's entire existing config form. Wrong!
+  if (@$form_state['view']) {
+    $form = array();
+  }
 
+  if ($display['type'] == 'blockreference_config_link') {
     $form['label'] = array(
       '#type' => 'select',
       '#title' => t('Label'),
@@ -133,6 +140,17 @@ function blockreference_field_formatter_settings_form($field, $instance, $view_m
 
     return $form;
   }
+
+  if (isset($settings['show_empty_blocks'])) {
+    $form['show_empty_blocks'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Show empty blocks?'),
+      '#default_value' => $settings['show_empty_blocks'],
+      '#description' => t("Hiding empty blocks (usually a good thing) will move up the rendering process and check its output. If the render moment is important, don't do this.")
+    );
+
+    return $form;
+  }
 }
 
 /**
@@ -142,18 +160,33 @@ function blockreference_field_formatter_view($entity_type, $entity, $field, $ins
   $element = array();
   $formatter = str_replace('blockreference_', '', $display['type']);
   foreach ($items as $delta => $item) {
+    $vars = array(
+      'entity_type' => $entity_type,
+      'entity' => $entity,
+      'field' => $field,
+      'instance' => $instance,
+      'langcode' => $langcode,
+      'item' => $item,
+      'display' => $display,
+    );
     $element[$delta] = array(
       '#theme' => 'blockreference_formatter_' . $formatter,
-      '#element' => array(
-        'entity_type' => $entity_type,
-        'entity' => $entity,
-        'field' => $field,
-        'instance' => $instance,
-        'langcode' => $langcode,
-        'item' => $item,
-        'display' => $display,
-      ),
+      '#element' => $vars,
     );
+
+    // To hide potentially empty/broken/missing block references, pre-render it immediately and check the output.
+    if (!$display['settings']['show_empty_blocks']) {
+      $html = trim(render($element[$delta]));
+      if ($html) {
+        $element[$delta] = array(
+          '#markup' => $html,
+          '#blockreference_vars' => $vars,
+        );
+      }
+      else {
+        unset($element[$delta]);
+      }
+    }
   }
   return $element;
 }
