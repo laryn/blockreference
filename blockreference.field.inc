@@ -279,6 +279,7 @@ function blockreference_field_widget_form(&$form, &$form_state, $field, $instanc
         '#size' => $instance['widget']['settings']['size'],
         '#element_validate' => array('blockreference_autocomplete_validate'),
         '#value_callback' => 'blockreference_autocomplete_value',
+        '#maxlength' => 999,
       );
       $element = array('moddelta' => $element);
       break;
