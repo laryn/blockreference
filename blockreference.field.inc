@@ -105,21 +105,17 @@ function blockreference_field_formatter_settings_summary($field, $instance, $vie
 function blockreference_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
   $display = $instance['display'][$view_mode];
   $settings = $display['settings'];
-
-  // Views for some reason passes in the Views Field's entire existing config form. Wrong!
-  if (@$form_state['view']) {
-    $form = array();
-  }
+  $element = array();
 
   if ($display['type'] == 'blockreference_config_link') {
-    $form['label'] = array(
+    $element['label'] = array(
       '#type' => 'select',
       '#title' => t('Label'),
       '#options' => drupal_map_assoc(array('default', 'custom', 'info', 'config', 'rendered')),
       '#default_value' => $settings['label'],
       '#attributes' => array('class' => array('blockreference-label-type')),
     );
-    $form['custom_label'] = array(
+    $element['custom_label'] = array(
       '#type' => 'textfield',
       '#title' => t('Custom label'),
       '#default_value' => $settings['custom_label'],
@@ -131,25 +127,25 @@ function blockreference_field_formatter_settings_form($field, $instance, $view_m
       ),
     );
 
-    $form['destination'] = array(
+    $element['destination'] = array(
       '#type' => 'checkbox',
       '#title' => t('Remember location?'),
       '#default_value' => $settings['destination'],
       '#description' => t('If checked, will append a ?destination to the URL, to come back after saving.'),
     );
 
-    return $form;
+    return $element;
   }
 
   if (isset($settings['show_empty_blocks'])) {
-    $form['show_empty_blocks'] = array(
+    $element['show_empty_blocks'] = array(
       '#type' => 'checkbox',
       '#title' => t('Show empty blocks?'),
       '#default_value' => $settings['show_empty_blocks'],
       '#description' => t("Hiding empty blocks (usually a good thing) will move up the rendering process and check its output. If the render moment is important, don't do this.")
     );
 
-    return $form;
+    return $element;
   }
 }
 
