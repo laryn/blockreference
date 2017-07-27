@@ -155,6 +155,8 @@ function theme_blockreference_formatter_default($variables) {
   $block = _blockreference_formatter_get_block($element);
   if ($block) {
     $bid = $block->module . '_' . $block->delta;
+    if (!isset($block->title)) $block->title = '';
+    if (!isset($block->region)) $block->region = 'none';
     $block_content = _block_render_blocks(array($block));
     $build = _block_get_renderable_array($block_content);
     $build[$bid]['#blockreference_element'] = $element;
@@ -173,6 +175,8 @@ function theme_blockreference_formatter_without_title($variables) {
   $block = _blockreference_formatter_get_block($element);
   if ($block) {
     $bid = $block->module . '_' . $block->delta;
+    if (!isset($block->title)) $block->title = '';
+    if (!isset($block->region)) $block->region = 'none';
     $block_content = _block_render_blocks(array($block));
     if ($block_content) {
       reset($block_content)->subject = '';
