@@ -159,12 +159,7 @@ function theme_blockreference_formatter_default($variables) {
 
   $block = _blockreference_formatter_get_block($element);
   if ($block) {
-    $bid = $block->module . '_' . $block->delta;
-    if (!isset($block->title)) $block->title = '';
-    if (!isset($block->region)) $block->region = 'none';
-    $block_content = _block_render_blocks(array($block));
-    $build = _block_get_renderable_array($block_content);
-    $build[$bid]['#blockreference_element'] = $element;
+    $build = _blockreference_get_renderable_array($block);
     return backdrop_render($build);
   }
 
@@ -179,16 +174,9 @@ function theme_blockreference_formatter_without_title($variables) {
 
   $block = _blockreference_formatter_get_block($element);
   if ($block) {
-    $bid = $block->module . '_' . $block->delta;
-    if (!isset($block->title)) $block->title = '';
-    if (!isset($block->region)) $block->region = 'none';
-    $block_content = _block_render_blocks(array($block));
-    if ($block_content) {
-      reset($block_content)->subject = '';
-      $build = _block_get_renderable_array($block_content);
-      $build[$bid]['#blockreference_element'] = $element;
-      return backdrop_render($build);
-    }
+    $build = _blockreference_get_renderable_array($block);
+    $build['#content']->title = NULL;
+    return backdrop_render($build);
   }
 
   return '';
@@ -217,11 +205,9 @@ function theme_blockreference_formatter_title($variables) {
 
   $block = _blockreference_formatter_get_block($element);
   if ($block) {
-
-    $block_content = _block_render_blocks(array($block));
-    if ($block_content) {
-      return reset($block_content)->subject;
-    }
+    $build = _blockreference_get_renderable_array($block);
+    $build['#content']->content = NULL;
+    return backdrop_render($build);
   }
 
   return '';
@@ -444,28 +430,10 @@ function blockreference_options_list($field, $instance, $entity_type, $entity) {
  */
 function _blockreference_formatter_get_block($element) {
   $item = $element['item'];
+
   if (@$item['moddelta']) {
     list($module, $delta) = explode(':', $item['moddelta']);
-    $block = _blockreference_block($module, $delta);
-    if ($block) {
-      // Fetch all `block` columns for this block, any theme.
-      $query = db_select('block', 'b')
-       ->fields('b')
-       ->condition('module', $module)
-       ->condition('delta',  $delta)
-       ->execute();
-      $result = $query->fetchAssoc();
-      if ($result) {
-        // Copy all themes columns over to our block object, except the useless, theme-specific.
-        foreach ($result as $column => $value) {
-          if (!isset($block->$column) && !in_array($column, array('bid', 'theme'))) {
-            $block->$column = $value;
-          }
-        }
-      }
-      $block->region = 'none';
-      return $block;
-    }
+    return _blockreference_block($module, $delta);
   }
 
   return FALSE;
@@ -588,4 +556,52 @@ function _blockreference_entityreference_link_links($entity_type, $moddeltas, $o
   }
 
   return $links;
+}
+
+function _blockreference_get_renderable_array($block) {
+
+  $plugin_name = $block->module . ':' . $block->delta;
+  $data = array();
+
+  // Load Block entity
+  if (!isset($block->class)) {
+    $block = new BlockLegacy($plugin_name, $data);
+  }
+  else {
+    $block = new $block->class($plugin_name, $data);
+
+  }
+
+  // Prepare block
+  $block->prepare();
+
+  // Get block content
+  // Copied from layout_renderer_standard.inc
+  $content = $block->getContent();
+
+  if (is_string($content)) {
+    $content = array(
+      '#markup' => $content,
+    );
+  }
+
+  $data = array(
+    'title' => $block->getTitle(),
+    'content' => $content,
+  );
+
+  // Allow altering of the title and content by other modules.
+  backdrop_alter(array('block_view', 'block_view_' . $block->module . '_' . str_replace('-', '_', $block->delta)), $data, $block);
+
+  // Assemble a structured content array.
+  $content = (object) array(
+    'title' => $data['title'],
+    'content' => $data['content'],
+  );
+
+  return array(
+    '#theme' => 'block',
+    '#content' => $content,
+    '#block' => $block
+  );
 }
