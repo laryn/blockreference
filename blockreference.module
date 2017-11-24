@@ -29,12 +29,17 @@ function blockreference_autocomplete_access($entity_type, $bundle, $field_name, 
     $entity_dummy = entity_create($entity_type, array(
       $entity_info['entity keys']['bundle'] => $bundle,
     ));
-    $entity_access = entity_access('create', $entity_type, $entity_dummy);
+    if (function_exists($entity_type . '_access')) {
+      $entity_access = call_user_func($entity_type . '_access', 'create', $entity_type, $entity_dummy);
+    }
   }
   else {
     $entity = entity_load($entity_type, array($eid));
     $entity = reset($entity) ?: FALSE;
-    $entity_access = entity_access('update', $entity_type, $entity);
+
+    if (function_exists($entity_type . '_access')) {
+      $entity_access = call_user_func($entity_type . '_access', 'update', $entity_type, $entity);
+    }
   }
   return user_access('access content') && $entity_access;
 }
