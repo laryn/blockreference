@@ -359,7 +359,9 @@ function _blockreference_block($module, $delta, $info = NULL) {
  */
 function _blockreference_find_blocks($instance, $search_string = '', $context = array()) {
   $all_block_infos = &backdrop_static(__FUNCTION__, array());
-  $iid = $instance['id'];
+
+  // Generate unique instance id
+  $iid = 'field.instance.' . $instance['entity_type'] . '.' . $instance['bundle'] . '.' . $instance['field_name'];
 
   // Cache ALL potential block objects for this instance.
   if (!isset($all_block_infos[$iid])) {
