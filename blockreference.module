@@ -62,7 +62,7 @@ function blockreference_autocomplete($entity_type, $bundle, $field_name, $entity
   $blocks = _blockreference_find_blocks($instance, $search_string, $context);
   $options = _blockreference_options($blocks, TRUE);
 
-  drupal_json_output($options);
+  backdrop_json_output($options);
 }
 
 /**
@@ -160,7 +160,7 @@ function theme_blockreference_formatter_default($variables) {
     $block_content = _block_render_blocks(array($block));
     $build = _block_get_renderable_array($block_content);
     $build[$bid]['#blockreference_element'] = $element;
-    return drupal_render($build);
+    return backdrop_render($build);
   }
 
   return '';
@@ -182,7 +182,7 @@ function theme_blockreference_formatter_without_title($variables) {
       reset($block_content)->subject = '';
       $build = _block_get_renderable_array($block_content);
       $build[$bid]['#blockreference_element'] = $element;
-      return drupal_render($build);
+      return backdrop_render($build);
     }
   }
 
@@ -276,7 +276,7 @@ function _blockreference_get_block_modules_from_field($instance, $field = NULL) 
     $modules = @$field['settings']['referenceable_modules'];
   }
 
-  $modules = drupal_map_assoc(array_keys(array_filter($modules)));
+  $modules = backdrop_map_assoc(array_keys(array_filter($modules)));
 
   return (array) $modules;
 }
@@ -293,7 +293,7 @@ function _blockreference_get_ac_match_method_from_field($instance, $field = NULL
  * Return options list of modules that provide blocks, keyed by module machine name.
  */
 function _blockreference_get_block_modules() {
-  $modules = &drupal_static(__FUNCTION__);
+  $modules = &backdrop_static(__FUNCTION__);
 
   if (!$modules) {
     // Get modules that define blocks.
@@ -358,7 +358,7 @@ function _blockreference_block($module, $delta, $info = NULL) {
  * Helper to find blocks that potentially match a search string, in the right order, altered by custom modules.
  */
 function _blockreference_find_blocks($instance, $search_string = '', $context = array()) {
-  $all_block_infos = &drupal_static(__FUNCTION__, array());
+  $all_block_infos = &backdrop_static(__FUNCTION__, array());
   $iid = $instance['id'];
 
   // Cache ALL potential block objects for this instance.
@@ -381,13 +381,13 @@ function _blockreference_find_blocks($instance, $search_string = '', $context = 
   $blocks = $all_block_infos[$iid];
   $context['instance'] = $instance;
 
-  drupal_alter('blockreference_blocks_pre', $blocks, $context);
+  backdrop_alter('blockreference_blocks_pre', $blocks, $context);
 
   // Filter by search string.
   if ($search_string) {
-    $check_string = drupal_strtolower($search_string);
+    $check_string = backdrop_strtolower($search_string);
     foreach ($blocks as $moddelta => $block) {
-      if (strpos(drupal_strtolower($block->info), $check_string) === FALSE) {
+      if (strpos(backdrop_strtolower($block->info), $check_string) === FALSE) {
         unset($blocks[$moddelta]);
       }
     }
@@ -398,7 +398,7 @@ function _blockreference_find_blocks($instance, $search_string = '', $context = 
     return strnatcasecmp($a->info, $b->info);
   });
 
-  drupal_alter('blockreference_blocks_post', $blocks, $context);
+  backdrop_alter('blockreference_blocks_post', $blocks, $context);
 
   return $blocks;
 }

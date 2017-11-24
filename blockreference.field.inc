@@ -111,7 +111,7 @@ function blockreference_field_formatter_settings_form($field, $instance, $view_m
     $element['label'] = array(
       '#type' => 'select',
       '#title' => t('Label'),
-      '#options' => drupal_map_assoc(array('default', 'custom', 'info', 'config', 'rendered')),
+      '#options' => backdrop_map_assoc(array('default', 'custom', 'info', 'config', 'rendered')),
       '#default_value' => $settings['label'],
       '#attributes' => array('class' => array('blockreference-label-type')),
     );
