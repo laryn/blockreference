@@ -41,7 +41,7 @@ Issues
 ------
 
 Bugs and Feature requests should be reported in the Issue Queue:
-https://github.com/backdrop-contrib/foo-project/issues
+https://github.com/backdrop-contrib/blockreference/issues
 
 Current Maintainers
 -------------------
