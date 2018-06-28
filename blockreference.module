@@ -257,7 +257,7 @@ function theme_blockreference_formatter_config_link($variables) {
 }
 
 /**
- * The referenecable blocks in field instance settings.
+ * The referenceable blocks in field instance settings.
  */
 function _blockreference_get_block_modules_from_field($instance, $field = NULL) {
   $modules = @$instance['settings']['blockreference_modules'];
