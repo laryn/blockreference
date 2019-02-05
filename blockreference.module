@@ -30,7 +30,7 @@ function blockreference_autocomplete_access($entity_type, $bundle, $field_name, 
       $entity_info['entity keys']['bundle'] => $bundle,
     ));
     if (function_exists($entity_type . '_access')) {
-      $entity_access = call_user_func($entity_type . '_access', 'create', $entity_type, $entity_dummy);
+      $entity_access = call_user_func($entity_type . '_access', 'create', $entity_dummy);
     }
   }
   else {
@@ -38,7 +38,7 @@ function blockreference_autocomplete_access($entity_type, $bundle, $field_name, 
     $entity = reset($entity) ?: FALSE;
 
     if (function_exists($entity_type . '_access')) {
-      $entity_access = call_user_func($entity_type . '_access', 'update', $entity_type, $entity);
+      $entity_access = call_user_func($entity_type . '_access', 'update', $entity);
     }
   }
   return user_access('access content') && $entity_access;
