@@ -2,9 +2,9 @@ name = Block Reference
 description = Defines a field type for referencing a block from a node.
 backdrop = 1.x
 type = module
+
+maintainers[yorkshire-pudding] = Martin Price
+maintainers_wanted = TRUE
+
 package = Fields
 tags[] = Blocks
-
-; Migrate handler.
-; TODO use hook_autoload_info
-;files[] = MigrateBlockReferenceFieldHandler.inc
